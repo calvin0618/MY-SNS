@@ -11,7 +11,7 @@
 !.yarn/versions
 
 # pnpm
-pnpm-lock.yaml
+# pnpm-lock.yaml - lock 파일은 버전 관리에 포함해야 함
 
 # testing
 /coverage

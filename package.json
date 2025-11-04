@@ -2,6 +2,11 @@
   "name": "saas-mini-course",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0",
   "scripts": {
     "dev": "next dev --turbopack",
     "evn": "next dev --turbopack",
