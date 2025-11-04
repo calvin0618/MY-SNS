@@ -18,7 +18,13 @@ export default function BottomNav() {
   const { user } = useUser();
 
   // 메뉴 항목 정의
-  const menuItems = [
+  const menuItems: Array<{
+    icon: typeof Home;
+    label: string;
+    href: string;
+    active: boolean;
+    isAction?: boolean;
+  }> = [
     {
       icon: Home,
       label: "홈",
@@ -34,8 +40,9 @@ export default function BottomNav() {
     {
       icon: Plus,
       label: "만들기",
-      href: "/create", // 게시물 작성 모달 열기 (추후 구현)
-      active: pathname === "/create",
+      href: "#", // 모달 열기로 처리
+      active: false,
+      isAction: true, // 액션 버튼 (링크가 아닌 클릭 이벤트)
     },
     {
       icon: Heart,
@@ -70,7 +77,23 @@ export default function BottomNav() {
         const Icon = item.icon;
         const isActive = item.active;
 
-        return (
+        return item.isAction ? (
+          <button
+            key={item.href}
+            onClick={onCreatePostClick}
+            className={cn(
+              // 기본 스타일
+              "flex flex-col items-center justify-center",
+              "flex-1 h-full",
+              "text-[#262626] transition-colors",
+              // Hover 효과
+              "hover:opacity-70"
+            )}
+            aria-label={item.label}
+          >
+            <Icon className="w-6 h-6" />
+          </button>
+        ) : (
           <Link
             key={item.href}
             href={item.href}

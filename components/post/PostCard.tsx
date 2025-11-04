@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useUser } from "@clerk/nextjs";
+import { useClerkSupabaseClient } from "@/lib/supabase/clerk-client";
 import {
   Heart,
   MessageCircle,
@@ -14,18 +16,26 @@ import { PostWithUser, CommentWithUser } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/utils/date";
 import { isTextOverflow } from "@/lib/utils/text";
+import CommentForm from "@/components/comment/CommentForm";
+import CommentList from "@/components/comment/CommentList";
+import PostModal from "@/components/post/PostModal";
 
 interface PostCardProps {
   post: PostWithUser;
-  comments?: CommentWithUser[]; // 댓글 미리보기용 (최신 2개)
+  comments?: CommentWithUser[]; // 댓글 미리보기용 (초기값)
   onLikeUpdate?: (postId: string, isLiked: boolean, likesCount: number) => void; // 좋아요 상태 업데이트 콜백
+  onCommentUpdate?: (postId: string) => void; // 댓글 업데이트 콜백
+  onPostDeleted?: () => void; // 게시물 삭제 후 콜백
 }
 
 /**
  * PostCard 컴포넌트
  * Instagram 스타일의 게시물 카드
  */
-export default function PostCard({ post, comments = [], onLikeUpdate }: PostCardProps) {
+export default function PostCard({ post, comments: initialComments = [], onLikeUpdate, onCommentUpdate, onPostDeleted }: PostCardProps) {
+  const { user: clerkUser } = useUser();
+  const supabase = useClerkSupabaseClient();
+  
   const [imageLoading, setImageLoading] = useState(true);
   const [showFullCaption, setShowFullCaption] = useState(false);
   const [doubleTapHeartVisible, setDoubleTapHeartVisible] = useState(false);
@@ -37,7 +47,102 @@ export default function PostCard({ post, comments = [], onLikeUpdate }: PostCard
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [heartScale, setHeartScale] = useState(1);
 
-  const { user, comments_count = 0 } = post;
+  // 댓글 상태 관리
+  const [comments, setComments] = useState<CommentWithUser[]>(initialComments);
+  const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+
+  // PostModal 상태 관리
+  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+
+  const { user } = post;
+
+  // 현재 사용자의 Supabase user_id 조회
+  useEffect(() => {
+    const fetchCurrentUserId = async () => {
+      if (!clerkUser?.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("id")
+          .eq("clerk_id", clerkUser.id)
+          .single();
+
+        if (!error && data) {
+          setCurrentUserId(data.id);
+        }
+      } catch (error) {
+        console.error("❌ 현재 사용자 ID 조회 실패:", error);
+      }
+    };
+
+    fetchCurrentUserId();
+  }, [clerkUser?.id, supabase]);
+
+  // 댓글 목록 로드
+  const loadComments = async () => {
+    setIsLoadingComments(true);
+    console.log("🔵 댓글 목록 로드 시작:", post.id);
+
+    try {
+      const response = await fetch(`/api/comments?post_id=${post.id}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("❌ 댓글 목록 로드 실패:", data.error);
+        return;
+      }
+
+      console.log("✅ 댓글 목록 로드 성공:", data.comments?.length || 0, "개");
+      setComments(data.comments || []);
+      setCommentsCount(data.comments?.length || 0);
+    } catch (error) {
+      console.error("❌ 댓글 목록 로드 에러:", error);
+    } finally {
+      setIsLoadingComments(false);
+    }
+  };
+
+  // 초기 댓글이 없으면 로드
+  useEffect(() => {
+    if (initialComments.length === 0 && commentsCount > 0) {
+      loadComments();
+    } else if (initialComments.length > 0) {
+      // 초기 댓글이 있으면 상태에 설정
+      setComments(initialComments);
+    }
+  }, []);
+
+  // 댓글 작성 후 처리
+  const handleCommentSubmit = async (content: string) => {
+    console.log("✅ 댓글 작성 완료 - 목록 새로고침");
+    
+    // 댓글 목록 새로고침 (낙관적 업데이트는 CommentForm에서 처리하지 않고 여기서 처리)
+    await loadComments();
+    
+    // 댓글 수 업데이트
+    setCommentsCount((prev) => prev + 1);
+    
+    // 부모 컴포넌트에 알림
+    if (onCommentUpdate) {
+      onCommentUpdate(post.id);
+    }
+  };
+
+  // 댓글 삭제 후 처리
+  const handleCommentDelete = (commentId: string) => {
+    console.log("✅ 댓글 삭제 완료 - 목록 업데이트");
+    // 낙관적 업데이트: 댓글 목록에서 제거
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
+    setCommentsCount((prev) => Math.max(0, prev - 1));
+    
+    // 부모 컴포넌트에 알림
+    if (onCommentUpdate) {
+      onCommentUpdate(post.id);
+    }
+  };
 
   // 캡션 텍스트 처리
   const captionText = post.caption || "";
@@ -176,16 +281,46 @@ export default function PostCard({ post, comments = [], onLikeUpdate }: PostCard
           </div>
         </div>
 
-        {/* 메뉴 버튼 */}
-        <button
-          className="text-[#262626] hover:opacity-70 transition-opacity"
-          aria-label="더보기 메뉴"
-          onClick={() => {
-            // TODO: 드롭다운 메뉴 구현 (7-3)
-          }}
-        >
-          <MoreVertical className="w-5 h-5" />
-        </button>
+        {/* 메뉴 버튼 (본인 게시물만 표시) */}
+        {currentUserId === user.id && (
+          <button
+            className="text-[#262626] hover:opacity-70 transition-opacity"
+            aria-label="게시물 삭제"
+            onClick={async () => {
+              if (!window.confirm("정말 이 게시물을 삭제하시겠습니까?")) {
+                return;
+              }
+
+              console.log("🔴 게시물 삭제 시작:", post.id);
+
+              try {
+                const response = await fetch(`/api/posts/${post.id}`, {
+                  method: "DELETE",
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                  console.error("❌ 게시물 삭제 실패:", data.error);
+                  alert(data.error || "게시물 삭제에 실패했습니다.");
+                  return;
+                }
+
+                console.log("✅ 게시물 삭제 성공:", data);
+
+                // 부모 컴포넌트에 알림
+                if (onPostDeleted) {
+                  onPostDeleted();
+                }
+              } catch (error) {
+                console.error("❌ 게시물 삭제 에러:", error);
+                alert("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
+              }
+            }}
+          >
+            <MoreVertical className="w-5 h-5" />
+          </button>
+        )}
       </header>
 
       {/* 이미지 영역 (1:1 정사각형) */}
@@ -259,8 +394,7 @@ export default function PostCard({ post, comments = [], onLikeUpdate }: PostCard
           <button
             className="text-[#262626] hover:opacity-70 transition-opacity"
             onClick={() => {
-              // TODO: PostModal 열기 (7-1)
-              console.log("Open post modal:", post.id);
+              setIsPostModalOpen(true);
             }}
             aria-label="댓글"
           >
@@ -326,33 +460,51 @@ export default function PostCard({ post, comments = [], onLikeUpdate }: PostCard
         )}
 
         {/* 댓글 미리보기 */}
-        {comments_count > 0 && (
+        {commentsCount > 0 && (
           <div className="space-y-1">
-            <button
-              className="text-sm text-[#8e8e8e] hover:text-[#262626]"
-              onClick={() => {
-                // TODO: PostModal 열기 (7-1)
-                console.log("View all comments:", post.id);
-              }}
-            >
-              댓글 {comments_count.toLocaleString()}개 모두 보기
-            </button>
+            {commentsCount > 2 && (
+              <button
+                className="text-sm text-[#8e8e8e] hover:text-[#262626]"
+                onClick={() => {
+                  setIsPostModalOpen(true);
+                }}
+              >
+                댓글 {commentsCount.toLocaleString()}개 모두 보기
+              </button>
+            )}
 
-            {/* 최신 2개 댓글 표시 */}
-            {comments.slice(0, 2).map((comment) => (
-              <div key={comment.id} className="text-sm text-[#262626]">
-                <Link
-                  href={`/profile/${comment.user.id}`}
-                  className="font-semibold hover:opacity-70 mr-1"
-                >
-                  {comment.user.username}
-                </Link>
-                <span>{comment.content}</span>
-              </div>
-            ))}
+            {/* 최신 2개 댓글 표시 (CommentList 컴포넌트 사용) */}
+            {comments.length > 0 && (
+              <CommentList
+                comments={comments.slice(0, 2)}
+                currentUserId={currentUserId}
+                maxHeight="none"
+              />
+            )}
           </div>
         )}
       </div>
+
+      {/* 댓글 작성 폼 */}
+      <CommentForm postId={post.id} onSubmit={handleCommentSubmit} />
+
+      {/* PostModal */}
+      <PostModal
+        postId={post.id}
+        open={isPostModalOpen}
+        onOpenChange={setIsPostModalOpen}
+        onPostDeleted={() => {
+          if (onPostDeleted) {
+            onPostDeleted();
+          }
+        }}
+        onCommentUpdate={() => {
+          loadComments();
+          if (onCommentUpdate) {
+            onCommentUpdate(post.id);
+          }
+        }}
+      />
     </article>
   );
 }

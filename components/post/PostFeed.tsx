@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { PostWithUser } from "@/lib/types";
 import PostCard from "./PostCard";
 import PostCardSkeleton from "./PostCardSkeleton";
@@ -17,6 +18,14 @@ interface PostFeedProps {
  * 무한 스크롤과 페이지네이션은 추후 구현 예정
  */
 export default function PostFeed({ posts = [], loading = false }: PostFeedProps) {
+  const router = useRouter();
+
+  // 게시물 삭제 후 피드 새로고침
+  const handlePostDeleted = () => {
+    console.log("✅ 게시물 삭제 완료 - 피드 새로고침");
+    router.refresh();
+  };
+
   // 초기 로딩 상태
   if (loading) {
     return (
@@ -48,7 +57,11 @@ export default function PostFeed({ posts = [], loading = false }: PostFeedProps)
   return (
     <div className="w-full">
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} />
+        <PostCard
+          key={post.id}
+          post={post}
+          onPostDeleted={handlePostDeleted}
+        />
       ))}
     </div>
   );

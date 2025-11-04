@@ -19,7 +19,13 @@ export default function Sidebar() {
   const { user } = useUser();
 
   // 메뉴 항목 정의
-  const menuItems = [
+  const menuItems: Array<{
+    icon: typeof Home;
+    label: string;
+    href: string;
+    active: boolean;
+    isAction?: boolean;
+  }> = [
     {
       icon: Home,
       label: "홈",
@@ -35,8 +41,9 @@ export default function Sidebar() {
     {
       icon: Plus,
       label: "만들기",
-      href: "/create", // 게시물 작성 모달 열기 (추후 구현)
-      active: pathname === "/create",
+      href: "#", // 모달 열기로 처리
+      active: false,
+      isAction: true, // 액션 버튼 (링크가 아닌 클릭 이벤트)
     },
     {
       icon: User,
@@ -77,31 +84,52 @@ export default function Sidebar() {
 
             return (
               <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    // 기본 스타일
-                    "flex items-center gap-4 px-3 py-3 lg:px-4 rounded-lg",
-                    "text-[#262626] transition-colors",
-                    // Hover 효과
-                    "hover:bg-gray-50",
-                    // Active 상태
-                    isActive && "font-semibold",
-                    // Tablet에서는 아이콘만 중앙 정렬
-                    "justify-center lg:justify-start"
-                  )}
-                >
-                  <Icon
+                {item.isAction ? (
+                  <button
+                    onClick={onCreatePostClick}
                     className={cn(
-                      "w-6 h-6 flex-shrink-0",
-                      isActive && "stroke-[2.5px]" // Active 시 더 두껍게
+                      // 기본 스타일
+                      "flex items-center gap-4 px-3 py-3 lg:px-4 rounded-lg w-full",
+                      "text-[#262626] transition-colors",
+                      // Hover 효과
+                      "hover:bg-gray-50",
+                      // Tablet에서는 아이콘만 중앙 정렬
+                      "justify-center lg:justify-start"
                     )}
-                  />
-                  {/* Desktop에서만 텍스트 표시 */}
-                  <span className="hidden lg:inline text-sm">
-                    {item.label}
-                  </span>
-                </Link>
+                  >
+                    <Icon className="w-6 h-6 flex-shrink-0" />
+                    {/* Desktop에서만 텍스트 표시 */}
+                    <span className="hidden lg:inline text-sm">
+                      {item.label}
+                    </span>
+                  </button>
+                ) : (
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      // 기본 스타일
+                      "flex items-center gap-4 px-3 py-3 lg:px-4 rounded-lg",
+                      "text-[#262626] transition-colors",
+                      // Hover 효과
+                      "hover:bg-gray-50",
+                      // Active 상태
+                      isActive && "font-semibold",
+                      // Tablet에서는 아이콘만 중앙 정렬
+                      "justify-center lg:justify-start"
+                    )}
+                  >
+                    <Icon
+                      className={cn(
+                        "w-6 h-6 flex-shrink-0",
+                        isActive && "stroke-[2.5px]" // Active 시 더 두껍게
+                      )}
+                    />
+                    {/* Desktop에서만 텍스트 표시 */}
+                    <span className="hidden lg:inline text-sm">
+                      {item.label}
+                    </span>
+                  </Link>
+                )}
               </li>
             );
           })}
