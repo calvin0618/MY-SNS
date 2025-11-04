@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 작성된 댓글의 사용자 정보 조회
-    const { data: userData, error: userFetchError } = await supabase
+    const { data: commentUserData, error: userFetchError } = await supabase
       .from("users")
       .select("*")
       .eq("id", commentRecord.user_id)
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
 
     const commentWithUser = {
       ...commentRecord,
-      user: userData || null,
+      user: commentUserData || null,
     };
 
     // 댓글 수 업데이트 (posts 테이블의 comments_count 업데이트)
