@@ -17,13 +17,18 @@ interface PostFeedProps {
  * 로딩 상태 처리 포함
  * 무한 스크롤과 페이지네이션은 추후 구현 예정
  */
-export default function PostFeed({ posts = [], loading = false }: PostFeedProps) {
+export default function PostFeed({ posts = [], loading = false, onPostDeleted }: PostFeedProps) {
   const router = useRouter();
 
   // 게시물 삭제 후 피드 새로고침
   const handlePostDeleted = () => {
     console.log("✅ 게시물 삭제 완료 - 피드 새로고침");
     router.refresh();
+    
+    // 부모 컴포넌트에 알림
+    if (onPostDeleted) {
+      onPostDeleted();
+    }
   };
 
   // 초기 로딩 상태
@@ -60,6 +65,7 @@ export default function PostFeed({ posts = [], loading = false }: PostFeedProps)
         <PostCard
           key={post.id}
           post={post}
+          comments={(post as any).comments || []}
           onPostDeleted={handlePostDeleted}
         />
       ))}

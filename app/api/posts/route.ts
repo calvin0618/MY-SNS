@@ -166,18 +166,173 @@ export async function POST(request: NextRequest) {
  * GET /api/posts
  * 게시물 목록 조회
  * 
- * 추후 구현 예정:
- * - 페이지네이션 (limit, offset)
+ * Query Parameters:
+ * - limit: 페이지당 게시물 수 (기본값: 20)
+ * - offset: 건너뛸 게시물 수 (기본값: 0)
+ * 
+ * 반환:
+ * - 게시물 목록 (PostWithUser[])
  * - 시간 역순 정렬
  * - 사용자 정보 포함
  * - 좋아요 수 포함
  * - 댓글 수 포함
+ * - 현재 사용자의 좋아요 여부 포함
  */
 export async function GET(request: NextRequest) {
-  // TODO: 게시물 목록 조회 구현 (3-5)
-  return NextResponse.json(
-    { error: "Not implemented yet" },
-    { status: 501 }
-  );
+  try {
+    console.log("🔵 게시물 목록 조회 요청 시작");
+
+    const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get("limit") || "20", 10);
+    const offset = parseInt(searchParams.get("offset") || "0", 10);
+
+    // Clerk 인증 확인 (선택적 - 로그인하지 않은 사용자도 조회 가능)
+    const { userId: clerkUserId } = await auth();
+
+    // Supabase 클라이언트
+    const supabase = getServiceRoleClient();
+
+    // 게시물 목록 조회 (시간 역순 정렬)
+    const { data: posts, error: postsError } = await supabase
+      .from("posts")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (postsError) {
+      console.error("❌ 게시물 목록 조회 실패:", postsError);
+      return NextResponse.json(
+        { error: "게시물 목록을 불러오는데 실패했습니다.", details: postsError.message },
+        { status: 500 }
+      );
+    }
+
+    if (!posts || posts.length === 0) {
+      console.log("✅ 게시물 목록 조회 성공: 0개");
+      return NextResponse.json(
+        {
+          success: true,
+          posts: [],
+        },
+        { status: 200 }
+      );
+    }
+
+    // 현재 사용자의 Supabase user_id 조회 (좋아요 여부 확인용)
+    let currentUserId: string | null = null;
+    if (clerkUserId) {
+      const { data: userData } = await supabase
+        .from("users")
+        .select("id")
+        .eq("clerk_id", clerkUserId)
+        .single();
+
+      if (userData) {
+        currentUserId = userData.id;
+      }
+    }
+
+    // 각 게시물에 대한 추가 정보 조회
+    const postsWithUser = await Promise.all(
+      posts.map(async (post) => {
+        // 사용자 정보 조회
+        const { data: user, error: userError } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", post.user_id)
+          .single();
+
+        if (userError || !user) {
+          console.error("❌ 사용자 정보 조회 실패:", userError, "post_id:", post.id);
+          return null;
+        }
+
+        // 좋아요 수 조회
+        const { count: likesCount, error: likesError } = await supabase
+          .from("likes")
+          .select("*", { count: "exact", head: true })
+          .eq("post_id", post.id);
+
+        if (likesError) {
+          console.error("❌ 좋아요 수 조회 실패:", likesError, "post_id:", post.id);
+        }
+
+        // 댓글 수 조회
+        const { count: commentsCount, error: commentsCountError } = await supabase
+          .from("comments")
+          .select("*", { count: "exact", head: true })
+          .eq("post_id", post.id);
+
+        if (commentsCountError) {
+          console.error("❌ 댓글 수 조회 실패:", commentsCountError, "post_id:", post.id);
+        }
+
+        // 현재 사용자의 좋아요 여부 확인
+        let isLiked = false;
+        if (currentUserId) {
+          const { data: likeData } = await supabase
+            .from("likes")
+            .select("id")
+            .eq("post_id", post.id)
+            .eq("user_id", currentUserId)
+            .single();
+
+          isLiked = !!likeData;
+        }
+
+        // 최신 댓글 2개 조회 (미리보기용)
+        const { data: comments, error: commentsError } = await supabase
+          .from("comments")
+          .select("*")
+          .eq("post_id", post.id)
+          .order("created_at", { ascending: false })
+          .limit(2);
+
+        // 각 댓글의 사용자 정보 조회
+        const commentsWithUsers = await Promise.all(
+          (comments || []).map(async (comment) => {
+            const { data: commentUser } = await supabase
+              .from("users")
+              .select("*")
+              .eq("id", comment.user_id)
+              .single();
+
+            return {
+              ...comment,
+              user: commentUser || null,
+            };
+          })
+        );
+
+        return {
+          ...post,
+          user,
+          likes_count: likesCount || 0,
+          comments_count: commentsCount || 0,
+          is_liked: isLiked,
+          comments: commentsWithUsers,
+        };
+      })
+    );
+
+    // null 값 제거 (사용자 정보 조회 실패한 게시물)
+    const validPosts = postsWithUser.filter((post) => post !== null) as any[];
+
+    console.log("✅ 게시물 목록 조회 성공:", validPosts.length, "개");
+
+    return NextResponse.json(
+      {
+        success: true,
+        posts: validPosts,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("❌ 게시물 목록 조회 에러:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }
 

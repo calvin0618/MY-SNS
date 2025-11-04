@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PostFeed from "@/components/post/PostFeed";
 import { PostWithUser } from "@/lib/types";
 
@@ -16,17 +16,62 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<PostWithUser[]>([]);
 
-  // TODO: API 연동 (3-5)
-  // useEffect(() => {
-  //   fetchPosts();
-  // }, []);
+  // 게시물 목록 가져오기
+  useEffect(() => {
+    const fetchPosts = async () => {
+      setLoading(true);
+      console.log("🔵 게시물 목록 가져오기 시작");
 
-  // 현재는 로딩 상태로 표시 (API 연동 후 실제 데이터로 교체)
-  // API 연동 전까지는 로딩 상태 유지
+      try {
+        const response = await fetch("/api/posts");
+        const data = await response.json();
+
+        if (!response.ok) {
+          console.error("❌ 게시물 목록 가져오기 실패:", data.error);
+          setPosts([]);
+          return;
+        }
+
+        console.log("✅ 게시물 목록 가져오기 성공:", data.posts?.length || 0, "개");
+        setPosts(data.posts || []);
+      } catch (error) {
+        console.error("❌ 게시물 목록 가져오기 에러:", error);
+        setPosts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
+
+  // 게시물 삭제 후 목록 새로고침
+  const handlePostDeleted = () => {
+    console.log("✅ 게시물 삭제 완료 - 목록 새로고침");
+    // 게시물 목록 다시 가져오기
+    const fetchPosts = async () => {
+      try {
+        const response = await fetch("/api/posts");
+        const data = await response.json();
+
+        if (response.ok) {
+          setPosts(data.posts || []);
+        }
+      } catch (error) {
+        console.error("❌ 게시물 목록 가져오기 에러:", error);
+      }
+    };
+
+    fetchPosts();
+  };
 
   return (
     <div className="w-full">
-      <PostFeed posts={posts} loading={loading} />
+      <PostFeed 
+        posts={posts} 
+        loading={loading} 
+        onPostDeleted={handlePostDeleted}
+      />
     </div>
   );
 }
