@@ -28,8 +28,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // 빌드 시 환경 변수 체크
+  const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
   return (
-    <ClerkProvider localization={koKR}>
+    <ClerkProvider 
+      publishableKey={clerkPublishableKey || ""} 
+      localization={koKR}
+    >
       <html lang="ko" suppressHydrationWarning>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
@@ -39,11 +45,11 @@ export default function RootLayout({
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange
-        >
-          <SyncUserProvider>
-            <Navbar />
-            {children}
-          </SyncUserProvider>
+          >
+            <SyncUserProvider>
+              <Navbar />
+              {children}
+            </SyncUserProvider>
           </ThemeProvider>
         </body>
       </html>
