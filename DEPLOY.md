@@ -47,11 +47,13 @@ NEXT_PUBLIC_STORAGE_BUCKET=my-sns
 - **Build Command**: `pnpm build` (자동 설정됨)
 - **Output Directory**: `.next` (자동 설정됨)
 - **Install Command**: `pnpm install` (자동 설정됨)
-- **Node.js Version**: 20.x (`.nvmrc` 및 `package.json`에서 자동 감지됨)
+- **Node.js Version**: 20.x (`.nvmrc` 및 `package.json`의 `engines` 필드에서 자동 감지됨)
 
-> ⚠️ **주의**: Vercel에서 `ERR_INVALID_THIS` 에러가 발생하면:
-> - Vercel 프로젝트 설정 → **Settings** → **Node.js Version**을 **20.x**로 설정
-> - 또는 프로젝트 설정에서 **"Override"** → **Node.js Version: 20** 선택
+> ⚠️ **중요**: Vercel 프로젝트 설정에서 Node.js 버전을 명시적으로 설정해야 합니다:
+> 1. Vercel Dashboard → 프로젝트 선택 → **Settings**
+> 2. **General** → **Node.js Version** 섹션
+> 3. **"Override"** 선택 → **20.x** 선택
+> 4. 또는 `.nvmrc` 파일이 있으면 자동으로 감지됩니다
 
 #### 환경 변수 설정
 1. **"Environment Variables"** 섹션으로 스크롤
