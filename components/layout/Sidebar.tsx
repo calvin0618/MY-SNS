@@ -14,7 +14,11 @@ import { cn } from "@/lib/utils";
  * Tablet (768px~1023px): 72px 너비, 아이콘만
  * Mobile (<768px): 숨김
  */
-export default function Sidebar() {
+export default function Sidebar({
+  onCreatePostClick,
+}: {
+  onCreatePostClick: () => void;
+}) {
   const pathname = usePathname();
   const { user } = useUser();
 

@@ -190,7 +190,20 @@ export async function GET(request: NextRequest) {
     const { userId: clerkUserId } = await auth();
 
     // Supabase 클라이언트
-    const supabase = getServiceRoleClient();
+    let supabase;
+    try {
+      supabase = getServiceRoleClient();
+      console.log("✅ Supabase 클라이언트 초기화 성공");
+    } catch (supabaseError) {
+      console.error("❌ Supabase 클라이언트 초기화 실패:", supabaseError);
+      return NextResponse.json(
+        { 
+          error: "서버 설정 오류입니다.", 
+          details: supabaseError instanceof Error ? supabaseError.message : "Unknown error",
+        },
+        { status: 500 }
+      );
+    }
 
     // 게시물 목록 조회 (시간 역순 정렬)
     const { data: posts, error: postsError } = await supabase
@@ -200,9 +213,19 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (postsError) {
-      console.error("❌ 게시물 목록 조회 실패:", postsError);
+      console.error("❌ 게시물 목록 조회 실패:", {
+        error: postsError,
+        message: postsError.message,
+        code: postsError.code,
+        details: postsError.details,
+        hint: postsError.hint,
+      });
       return NextResponse.json(
-        { error: "게시물 목록을 불러오는데 실패했습니다.", details: postsError.message },
+        { 
+          error: "게시물 목록을 불러오는데 실패했습니다.", 
+          details: postsError.message,
+          code: postsError.code,
+        },
         { status: 500 }
       );
     }

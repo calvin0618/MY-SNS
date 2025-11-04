@@ -27,7 +27,12 @@ export default function Home() {
         const data = await response.json();
 
         if (!response.ok) {
-          console.error("❌ 게시물 목록 가져오기 실패:", data.error);
+          console.error("❌ 게시물 목록 가져오기 실패:", {
+            status: response.status,
+            error: data.error,
+            details: data.details,
+            code: data.code,
+          });
           setPosts([]);
           return;
         }
@@ -35,7 +40,10 @@ export default function Home() {
         console.log("✅ 게시물 목록 가져오기 성공:", data.posts?.length || 0, "개");
         setPosts(data.posts || []);
       } catch (error) {
-        console.error("❌ 게시물 목록 가져오기 에러:", error);
+        console.error("❌ 게시물 목록 가져오기 에러:", {
+          error,
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
         setPosts([]);
       } finally {
         setLoading(false);

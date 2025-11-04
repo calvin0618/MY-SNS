@@ -13,7 +13,11 @@ import { cn } from "@/lib/utils";
  * Mobile (<768px): 높이 50px, 5개 아이콘 (홈, 검색, 만들기, 좋아요, 프로필)
  * Desktop/Tablet: 숨김
  */
-export default function BottomNav() {
+export default function BottomNav({
+  onCreatePostClick,
+}: {
+  onCreatePostClick: () => void;
+}) {
   const pathname = usePathname();
   const { user } = useUser();
 

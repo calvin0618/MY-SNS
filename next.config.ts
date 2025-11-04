@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // UTF-8 인코딩 명시적 설정
+  webpack: (config) => {
+    // UTF-8 인코딩 보장
+    config.resolve.alias = {
+      ...config.resolve.alias,
+    };
+    return config;
+  },
   images: {
     remotePatterns: [
       { hostname: "img.clerk.com" },

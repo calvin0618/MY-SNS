@@ -318,7 +318,7 @@ export async function DELETE(request: NextRequest) {
     // 댓글 존재 확인 및 작성자 확인
     const { data: commentData, error: commentError } = await supabase
       .from("comments")
-      .select("id, user_id")
+      .select("id, user_id, post_id")
       .eq("id", commentId)
       .single();
 
