@@ -28,16 +28,22 @@ export async function POST() {
     // Supabase에 사용자 정보 동기화
     const supabase = getServiceRoleClient();
 
+    // 사용자명 생성 (username은 UNIQUE이므로 이메일 주소를 기본값으로 사용)
+    const username =
+      clerkUser.username ||
+      clerkUser.emailAddresses[0]?.emailAddress?.split("@")[0] ||
+      `user_${clerkUser.id.substring(0, 8)}`;
+
+    // full_name 설정
+    const fullName = clerkUser.fullName || null;
+
     const { data, error } = await supabase
       .from("users")
       .upsert(
         {
           clerk_id: clerkUser.id,
-          name:
-            clerkUser.fullName ||
-            clerkUser.username ||
-            clerkUser.emailAddresses[0]?.emailAddress ||
-            "Unknown",
+          username: username,
+          full_name: fullName,
         },
         {
           onConflict: "clerk_id",

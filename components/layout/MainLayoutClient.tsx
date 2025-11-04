@@ -28,7 +28,7 @@ export default function MainLayoutClient({
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
+    <div className="min-h-screen bg-background">
       {/* Sidebar 컴포넌트 (Desktop/Tablet) */}
       <Sidebar onCreatePostClick={() => setIsCreatePostModalOpen(true)} />
 

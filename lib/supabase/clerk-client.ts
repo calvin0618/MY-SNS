@@ -76,17 +76,8 @@ export function useClerkSupabaseClient() {
       },
     });
 
-    // 디버깅: 세션 확인
-    client.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        console.log("✅ Supabase 인증 성공:", {
-          user: session?.user?.id,
-          sub: session?.user?.app_metadata?.sub,
-        });
-      } else if (event === "SIGNED_OUT") {
-        console.log("❌ Supabase 인증 해제");
-      }
-    });
+    // 주의: accessToken 옵션을 사용할 때는 onAuthStateChange를 사용할 수 없습니다.
+    // Clerk의 인증 상태는 Clerk의 useAuth() 훅을 통해 관리됩니다.
 
     return client;
   }, [getToken]);

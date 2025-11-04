@@ -63,7 +63,7 @@ export default function Sidebar({
         // 기본 스타일 (모바일에서는 숨김)
         "hidden md:flex flex-col",
         // 배경 및 테두리
-        "bg-white border-r border-[#dbdbdb]",
+        "bg-white dark:bg-[#1a1a1a] border-r border-[#dbdbdb] dark:border-[#333333]",
         // 고정 위치
         "fixed left-0 top-0 h-screen z-50",
         // Desktop: 244px, Tablet: 72px
@@ -73,9 +73,9 @@ export default function Sidebar({
       )}
     >
       {/* 로고 영역 (Desktop만 표시) */}
-      <div className="hidden lg:flex items-center px-6 h-16 border-b border-[#dbdbdb]">
-        <Link href="/" className="text-2xl font-bold text-[#262626]">
-          Instagram
+      <div className="hidden lg:flex items-center px-6 h-16 border-b border-[#dbdbdb] dark:border-[#333333]">
+        <Link href="/" className="text-2xl font-bold text-[#262626] dark:text-[#fafafa]">
+          My SNS
         </Link>
       </div>
 
@@ -94,9 +94,9 @@ export default function Sidebar({
                     className={cn(
                       // 기본 스타일
                       "flex items-center gap-4 px-3 py-3 lg:px-4 rounded-lg w-full",
-                      "text-[#262626] transition-colors",
+                      "text-[#262626] dark:text-[#fafafa] transition-colors",
                       // Hover 효과
-                      "hover:bg-gray-50",
+                      "hover:bg-gray-50 dark:hover:bg-[#2a2a2a]",
                       // Tablet에서는 아이콘만 중앙 정렬
                       "justify-center lg:justify-start"
                     )}
@@ -113,9 +113,9 @@ export default function Sidebar({
                     className={cn(
                       // 기본 스타일
                       "flex items-center gap-4 px-3 py-3 lg:px-4 rounded-lg",
-                      "text-[#262626] transition-colors",
+                      "text-[#262626] dark:text-[#fafafa] transition-colors",
                       // Hover 효과
-                      "hover:bg-gray-50",
+                      "hover:bg-gray-50 dark:hover:bg-[#2a2a2a]",
                       // Active 상태
                       isActive && "font-semibold",
                       // Tablet에서는 아이콘만 중앙 정렬
