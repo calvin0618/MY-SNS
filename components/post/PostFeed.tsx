@@ -8,6 +8,7 @@ import PostCardSkeleton from "./PostCardSkeleton";
 interface PostFeedProps {
   posts?: PostWithUser[];
   loading?: boolean;
+  onPostDeleted?: () => void;
 }
 
 /**
