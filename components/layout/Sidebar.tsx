@@ -1,0 +1,113 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { Home, Search, Plus, User } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+/**
+ * Sidebar 컴포넌트
+ * Instagram 스타일의 사이드바 네비게이션
+ * 
+ * Desktop (≥1024px): 244px 너비, 아이콘 + 텍스트
+ * Tablet (768px~1023px): 72px 너비, 아이콘만
+ * Mobile (<768px): 숨김
+ */
+export default function Sidebar() {
+  const pathname = usePathname();
+  const { user } = useUser();
+
+  // 메뉴 항목 정의
+  const menuItems = [
+    {
+      icon: Home,
+      label: "홈",
+      href: "/",
+      active: pathname === "/",
+    },
+    {
+      icon: Search,
+      label: "검색",
+      href: "/explore", // 1차 MVP 제외 기능이지만 UI는 준비
+      active: pathname === "/explore",
+    },
+    {
+      icon: Plus,
+      label: "만들기",
+      href: "/create", // 게시물 작성 모달 열기 (추후 구현)
+      active: pathname === "/create",
+    },
+    {
+      icon: User,
+      label: "프로필",
+      href: user ? `/profile/${user.id}` : "/profile",
+      active: pathname?.startsWith("/profile"),
+    },
+  ];
+
+  return (
+    <aside
+      className={cn(
+        // 기본 스타일 (모바일에서는 숨김)
+        "hidden md:flex flex-col",
+        // 배경 및 테두리
+        "bg-white border-r border-[#dbdbdb]",
+        // 고정 위치
+        "fixed left-0 top-0 h-screen z-50",
+        // Desktop: 244px, Tablet: 72px
+        "w-[72px] lg:w-[244px]",
+        // 트랜지션
+        "transition-all duration-300"
+      )}
+    >
+      {/* 로고 영역 (Desktop만 표시) */}
+      <div className="hidden lg:flex items-center px-6 h-16 border-b border-[#dbdbdb]">
+        <Link href="/" className="text-2xl font-bold text-[#262626]">
+          Instagram
+        </Link>
+      </div>
+
+      {/* 메뉴 항목 */}
+      <nav className="flex-1 px-3 py-4 lg:px-6">
+        <ul className="space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = item.active;
+
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={cn(
+                    // 기본 스타일
+                    "flex items-center gap-4 px-3 py-3 lg:px-4 rounded-lg",
+                    "text-[#262626] transition-colors",
+                    // Hover 효과
+                    "hover:bg-gray-50",
+                    // Active 상태
+                    isActive && "font-semibold",
+                    // Tablet에서는 아이콘만 중앙 정렬
+                    "justify-center lg:justify-start"
+                  )}
+                >
+                  <Icon
+                    className={cn(
+                      "w-6 h-6 flex-shrink-0",
+                      isActive && "stroke-[2.5px]" // Active 시 더 두껍게
+                    )}
+                  />
+                  {/* Desktop에서만 텍스트 표시 */}
+                  <span className="hidden lg:inline text-sm">
+                    {item.label}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </aside>
+  );
+}
+

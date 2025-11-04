@@ -1,0 +1,56 @@
+"use client";
+
+import { PostWithUser } from "@/lib/types";
+import PostCard from "./PostCard";
+import PostCardSkeleton from "./PostCardSkeleton";
+
+interface PostFeedProps {
+  posts?: PostWithUser[];
+  loading?: boolean;
+}
+
+/**
+ * PostFeed 컴포넌트
+ * 게시물 목록을 렌더링하는 피드 컴포넌트
+ * 
+ * 로딩 상태 처리 포함
+ * 무한 스크롤과 페이지네이션은 추후 구현 예정
+ */
+export default function PostFeed({ posts = [], loading = false }: PostFeedProps) {
+  // 초기 로딩 상태
+  if (loading) {
+    return (
+      <div className="w-full">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <PostCardSkeleton key={`skeleton-${index}`} />
+        ))}
+      </div>
+    );
+  }
+
+  // 빈 상태
+  if (posts.length === 0) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center py-16">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-[#262626] mb-2">
+            게시물이 없습니다
+          </h2>
+          <p className="text-sm text-[#8e8e8e]">
+            첫 번째 게시물을 작성해보세요!
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // 게시물 목록 렌더링
+  return (
+    <div className="w-full">
+      {posts.map((post) => (
+        <PostCard key={post.id} post={post} />
+      ))}
+    </div>
+  );
+}
+
