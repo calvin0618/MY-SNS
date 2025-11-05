@@ -85,6 +85,7 @@ export interface PostWithUser extends Post {
   likes_count?: number; // 좋아요 수
   comments_count?: number; // 댓글 수
   is_liked?: boolean; // 현재 사용자가 좋아요 했는지
+  is_following?: boolean; // 현재 사용자가 게시물 작성자를 팔로우 중인지
 }
 
 // ============================================

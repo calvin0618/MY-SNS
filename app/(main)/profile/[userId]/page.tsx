@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
+import { useClerkSupabaseClient } from "@/lib/supabase/clerk-client";
 import Image from "next/image";
 import Link from "next/link";
 import { UserProfile } from "@/lib/types";
@@ -18,8 +19,10 @@ import { Grid3x3, Settings } from "lucide-react";
 export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const { user: clerkUser } = useUser();
-  const userId = params.userId as string;
+  const { user: clerkUser, isLoaded: isUserLoaded } = useUser();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const supabase = useClerkSupabaseClient();
+  const userId = params?.userId as string | undefined;
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<PostWithUser[]>([]);
@@ -30,9 +33,16 @@ export default function ProfilePage() {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
+  const [currentSupabaseUserId, setCurrentSupabaseUserId] = useState<string | null>(null);
 
   // 프로필 정보 로드
   const fetchProfile = async () => {
+    if (!userId) {
+      setError("사용자 ID가 없습니다.");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       console.log("🔵 프로필 정보 로드 시작:", userId);
       const response = await fetch(`/api/users/${encodeURIComponent(userId)}`);
@@ -55,6 +65,8 @@ export default function ProfilePage() {
 
   // 게시물 목록 로드
   const fetchPosts = async () => {
+    if (!userId) return;
+
     try {
       console.log("🔵 게시물 목록 로드 시작:", userId);
       const response = await fetch(`/api/users/${encodeURIComponent(userId)}/posts`);
@@ -71,6 +83,31 @@ export default function ProfilePage() {
     }
   };
 
+  // 현재 사용자의 Supabase user_id 조회
+  useEffect(() => {
+    const fetchCurrentUserId = async () => {
+      if (!clerkUser?.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("id")
+          .eq("clerk_id", clerkUser.id)
+          .single();
+
+        if (!error && data) {
+          setCurrentSupabaseUserId(data.id);
+        }
+      } catch (error) {
+        console.error("❌ 현재 사용자 ID 조회 실패:", error);
+      }
+    };
+
+    if (isAuthLoaded && isUserLoaded && isSignedIn && clerkUser) {
+      fetchCurrentUserId();
+    }
+  }, [clerkUser?.id, supabase, isAuthLoaded, isUserLoaded, isSignedIn]);
+
   // 초기 로드
   useEffect(() => {
     if (userId) {
@@ -85,10 +122,33 @@ export default function ProfilePage() {
   const handleFollowToggle = async () => {
     if (!profile || profile.is_own_profile || !supabaseUserId) return;
 
+    // 자기 자신 팔로우 방지 체크
+    if (currentSupabaseUserId && currentSupabaseUserId === supabaseUserId) {
+      alert("자신을 팔로워 할 수 없습니다.");
+      return;
+    }
+
+    // 인증 상태 확인 (로딩 중이거나 인증되지 않은 경우)
+    if (!isAuthLoaded || !isUserLoaded) {
+      console.log("⏳ 인증 상태 로딩 중...");
+      return;
+    }
+
+    if (!isSignedIn || !clerkUser) {
+      console.error("❌ 인증 상태 확인 실패:", {
+        isAuthLoaded,
+        isUserLoaded,
+        isSignedIn,
+        hasUser: !!clerkUser,
+      });
+      alert("로그인이 필요합니다. 다시 로그인해주세요.");
+      return;
+    }
+
     setIsFollowLoading(true);
     try {
       const action = isFollowing ? "unfollow" : "follow";
-      console.log("🔵 팔로우 토글:", action);
+      console.log("🔵 팔로우 토글:", { action, followingId: supabaseUserId, clerkUserId: clerkUser.id });
 
       const response = await fetch("/api/follows", {
         method: "POST",
@@ -104,7 +164,19 @@ export default function ProfilePage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "팔로우 처리에 실패했습니다.");
+        console.error("❌ 팔로우 API 응답 실패:", {
+          status: response.status,
+          statusText: response.statusText,
+          data,
+        });
+        
+        // 자기 자신 팔로우 시도 시 명확한 메시지 표시
+        if (data.error && data.error.includes("자기 자신")) {
+          alert("자신을 팔로워 할 수 없습니다.");
+          return;
+        }
+        
+        throw new Error(data.error || data.message || "팔로우 처리에 실패했습니다.");
       }
 
       console.log("✅ 팔로우 토글 성공:", action);
@@ -212,13 +284,15 @@ export default function ProfilePage() {
                 <>
                   <Button
                     onClick={handleFollowToggle}
-                    disabled={isFollowLoading}
+                    disabled={isFollowLoading || !isAuthLoaded || !isUserLoaded || !isSignedIn}
                     variant={isFollowing ? "outline" : "default"}
                     size="sm"
-                    className={isFollowing ? "" : "bg-[#0095f6] hover:bg-[#1877f2] text-white"}
+                    className={isFollowing ? "bg-green-500 hover:bg-green-600 text-white border-green-500" : "bg-[#0095f6] hover:bg-[#1877f2] text-white"}
                   >
                     {isFollowLoading
                       ? "처리 중..."
+                      : !isAuthLoaded || !isUserLoaded
+                      ? "로딩 중..."
                       : isFollowing
                       ? "팔로잉"
                       : "팔로우"}

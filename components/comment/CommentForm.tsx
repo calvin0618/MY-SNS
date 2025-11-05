@@ -1,16 +1,19 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
 
 interface CommentFormProps {
   postId: string;
   onSubmit?: (content: string) => Promise<void>; // 댓글 작성 후 콜백
   placeholder?: string;
   autoFocus?: boolean;
+  userName?: string; // 게시물 작성자 이름 (로그인 팝업용)
 }
 
 const MAX_COMMENT_LENGTH = 1000;
@@ -24,9 +27,13 @@ export default function CommentForm({
   onSubmit,
   placeholder = "댓글 달기...",
   autoFocus = false,
+  userName,
 }: CommentFormProps) {
+  const { user: clerkUser, isLoaded: isUserLoaded } = useUser();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // 자동 포커스
@@ -48,6 +55,18 @@ export default function CommentForm({
 
   // 댓글 작성
   const handleSubmit = async () => {
+    // 인증 상태 확인
+    if (!isAuthLoaded || !isUserLoaded) {
+      console.log("⏳ 인증 상태 로딩 중...");
+      return;
+    }
+
+    if (!isSignedIn || !clerkUser) {
+      console.log("🔵 로그인 필요 - 로그인 팝업 표시");
+      setIsLoginModalOpen(true);
+      return;
+    }
+
     const trimmedContent = content.trim();
 
     // 빈 댓글 체크
@@ -80,6 +99,13 @@ export default function CommentForm({
 
       if (!response.ok) {
         console.error("❌ 댓글 작성 실패:", data.error);
+        
+        // Unauthorized 에러 시 로그인 팝업 표시
+        if (response.status === 401 || data.error === "Unauthorized") {
+          setIsLoginModalOpen(true);
+          return;
+        }
+        
         alert(data.error || "댓글 작성에 실패했습니다.");
         return;
       }
@@ -107,61 +133,70 @@ export default function CommentForm({
   };
 
   return (
-    <div className="border-t border-[#dbdbdb] px-4 py-3">
-      <div className="flex items-end gap-2">
-        <Textarea
-          ref={textareaRef}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          maxLength={MAX_COMMENT_LENGTH}
-          disabled={isSubmitting}
-          className={cn(
-            "flex-1 resize-none border-0 focus:ring-0",
-            "text-sm text-foreground placeholder:text-muted-foreground",
-            "min-h-[40px] max-h-[100px]",
-            "bg-transparent"
-          )}
-          rows={1}
-        />
+    <>
+      <div className="border-t border-[#dbdbdb] px-4 py-3">
+        <div className="flex items-end gap-2">
+          <Textarea
+            ref={textareaRef}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            maxLength={MAX_COMMENT_LENGTH}
+            disabled={isSubmitting}
+            className={cn(
+              "flex-1 resize-none border-0 focus:ring-0",
+              "text-sm text-foreground placeholder:text-muted-foreground",
+              "min-h-[40px] max-h-[100px]",
+              "bg-transparent"
+            )}
+            rows={1}
+          />
 
-        <Button
-          onClick={handleSubmit}
-          disabled={!content.trim() || isSubmitting || content.length > MAX_COMMENT_LENGTH}
-          className={cn(
-            "px-4 py-2 h-auto",
-            "text-sm font-semibold",
-            !content.trim() || content.length > MAX_COMMENT_LENGTH || isSubmitting
-              ? "text-[#0095f6]/40 cursor-not-allowed"
-              : "text-[#0095f6] hover:text-[#1877f2]"
-          )}
-          variant="ghost"
-        >
-          {isSubmitting ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            "게시"
-          )}
-        </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!content.trim() || isSubmitting || content.length > MAX_COMMENT_LENGTH}
+            className={cn(
+              "px-4 py-2 h-auto",
+              "text-sm font-semibold",
+              !content.trim() || content.length > MAX_COMMENT_LENGTH || isSubmitting
+                ? "text-[#0095f6]/40 cursor-not-allowed"
+                : "text-[#0095f6] hover:text-[#1877f2]"
+            )}
+            variant="ghost"
+          >
+            {isSubmitting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              "게시"
+            )}
+          </Button>
+        </div>
+
+        {/* 글자 수 표시 (길이 제한에 가까울 때만) */}
+        {content.length > MAX_COMMENT_LENGTH * 0.9 && (
+          <div className="mt-1 flex justify-end">
+            <span
+              className={cn(
+                "text-xs",
+                content.length > MAX_COMMENT_LENGTH
+                  ? "text-[#ed4956]"
+                  : "text-muted-foreground"
+              )}
+            >
+              {content.length} / {MAX_COMMENT_LENGTH}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* 글자 수 표시 (길이 제한에 가까울 때만) */}
-      {content.length > MAX_COMMENT_LENGTH * 0.9 && (
-        <div className="mt-1 flex justify-end">
-          <span
-            className={cn(
-              "text-xs",
-              content.length > MAX_COMMENT_LENGTH
-                ? "text-[#ed4956]"
-                : "text-muted-foreground"
-            )}
-          >
-            {content.length} / {MAX_COMMENT_LENGTH}
-          </span>
-        </div>
-      )}
-    </div>
+      {/* 로그인 팝업 */}
+      <LoginRequiredModal
+        open={isLoginModalOpen}
+        onOpenChange={setIsLoginModalOpen}
+        userName={userName}
+      />
+    </>
   );
 }
 

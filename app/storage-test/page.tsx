@@ -529,7 +529,6 @@ export default function StorageTestPage() {
       {/* 사용자 정보 */}
       <div className="mt-8 p-4 bg-gray-50 rounded-lg">
         <h3 className="font-semibold mb-2">현재 사용자</h3>
-        <p className="text-sm text-gray-600">User ID: {user.id}</p>
         <p className="text-sm text-gray-600">
           Email: {user.emailAddresses[0]?.emailAddress}
         </p>

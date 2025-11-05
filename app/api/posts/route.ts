@@ -333,6 +333,19 @@ export async function GET(request: NextRequest) {
           isLiked = !!likeData;
         }
 
+        // 현재 사용자가 게시물 작성자를 팔로우 중인지 확인
+        let isFollowing = false;
+        if (currentUserId && currentUserId !== user.id) {
+          const { data: followData } = await supabase
+            .from("follows")
+            .select("id")
+            .eq("follower_id", currentUserId)
+            .eq("following_id", user.id)
+            .single();
+
+          isFollowing = !!followData;
+        }
+
         // 최신 댓글 2개 조회 (미리보기용)
         const { data: comments, error: commentsError } = await supabase
           .from("comments")
@@ -363,6 +376,7 @@ export async function GET(request: NextRequest) {
           likes_count: likesCount || 0,
           comments_count: commentsCount || 0,
           is_liked: isLiked,
+          is_following: isFollowing,
           comments: commentsWithUsers,
         };
       })

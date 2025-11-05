@@ -13,11 +13,18 @@ export async function POST(request: NextRequest) {
     console.log("🔵 팔로우 요청 시작");
 
     // Clerk 인증 확인
-    const { userId: clerkUserId } = await auth();
+    const authResult = await auth();
+    const clerkUserId = authResult.userId;
+    
+    console.log("🔍 인증 상태 확인:", {
+      hasAuth: !!authResult,
+      userId: clerkUserId ? clerkUserId.substring(0, 10) + "..." : null,
+    });
 
     if (!clerkUserId) {
+      console.error("❌ 인증 실패: clerkUserId가 없습니다.");
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { error: "Unauthorized", message: "로그인이 필요합니다." },
         { status: 401 }
       );
     }

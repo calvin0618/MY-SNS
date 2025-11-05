@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+import { usePathname, useRouter } from "next/navigation";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { Home, Search, Plus, Heart, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
+import { useState } from "react";
 
 /**
  * Bottom Navigation 컴포넌트
@@ -19,7 +21,37 @@ export default function BottomNav({
   onCreatePostClick: () => void;
 }) {
   const pathname = usePathname();
-  const { user } = useUser();
+  const router = useRouter();
+  const { user, isLoaded: isUserLoaded } = useUser();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  // 만들기 버튼 클릭 처리
+  const handleCreatePostClick = () => {
+    if (!isAuthLoaded || !isUserLoaded) {
+      return;
+    }
+
+    if (!isSignedIn || !user) {
+      setIsLoginModalOpen(true);
+      return;
+    }
+
+    onCreatePostClick();
+  };
+
+  // 프로필 클릭 처리
+  const handleProfileClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!isAuthLoaded || !isUserLoaded) {
+      return;
+    }
+
+    if (!isSignedIn || !user) {
+      e.preventDefault();
+      setIsLoginModalOpen(true);
+      return;
+    }
+  };
 
   // 메뉴 항목 정의
   const menuItems: Array<{
@@ -63,66 +95,75 @@ export default function BottomNav({
   ];
 
   return (
-    <nav
-      className={cn(
-        // 모바일에서만 표시
-        "md:hidden",
-        // 고정 위치 (하단)
-        "fixed bottom-0 left-0 right-0 z-50",
-        // 높이 50px
-        "h-[50px]",
-        // 배경 및 테두리
-        "bg-white border-t border-[#dbdbdb]",
-        // 레이아웃
-        "flex items-center justify-around"
-      )}
-    >
-      {menuItems.map((item) => {
-        const Icon = item.icon;
-        const isActive = item.active;
+    <>
+      <nav
+        className={cn(
+          // 모바일에서만 표시
+          "md:hidden",
+          // 고정 위치 (하단)
+          "fixed bottom-0 left-0 right-0 z-50",
+          // 높이 50px
+          "h-[50px]",
+          // 배경 및 테두리
+          "bg-white border-t border-[#dbdbdb]",
+          // 레이아웃
+          "flex items-center justify-around"
+        )}
+      >
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = item.active;
 
-        return item.isAction ? (
-          <button
-            key={item.href}
-            onClick={onCreatePostClick}
-            className={cn(
-              // 기본 스타일
-              "flex flex-col items-center justify-center",
-              "flex-1 h-full",
-              "text-[#262626] transition-colors",
-              // Hover 효과
-              "hover:opacity-70"
-            )}
-            aria-label={item.label}
-          >
-            <Icon className="w-6 h-6" />
-          </button>
-        ) : (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              // 기본 스타일
-              "flex flex-col items-center justify-center",
-              "flex-1 h-full",
-              "text-[#262626] transition-colors",
-              // Hover 효과
-              "hover:opacity-70",
-              // Active 상태
-              isActive && "opacity-100"
-            )}
-            aria-label={item.label}
-          >
-            <Icon
+          return item.isAction ? (
+            <button
+              key={item.href}
+              onClick={handleCreatePostClick}
               className={cn(
-                "w-6 h-6",
-                isActive && "stroke-[2.5px]" // Active 시 더 두껍게
+                // 기본 스타일
+                "flex flex-col items-center justify-center",
+                "flex-1 h-full",
+                "text-[#262626] transition-colors",
+                // Hover 효과
+                "hover:opacity-70"
               )}
-            />
-          </Link>
-        );
-      })}
-    </nav>
+              aria-label={item.label}
+            >
+              <Icon className="w-6 h-6" />
+            </button>
+          ) : (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={item.label === "프로필" ? handleProfileClick : undefined}
+              className={cn(
+                // 기본 스타일
+                "flex flex-col items-center justify-center",
+                "flex-1 h-full",
+                "text-[#262626] transition-colors",
+                // Hover 효과
+                "hover:opacity-70",
+                // Active 상태
+                isActive && "opacity-100"
+              )}
+              aria-label={item.label}
+            >
+              <Icon
+                className={cn(
+                  "w-6 h-6",
+                  isActive && "stroke-[2.5px]" // Active 시 더 두껍게
+                )}
+              />
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* 로그인 요청 모달 */}
+      <LoginRequiredModal
+        open={isLoginModalOpen}
+        onOpenChange={setIsLoginModalOpen}
+      />
+    </>
   );
 }
 

@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { Home, Heart, Send, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
+import { useState } from "react";
 
 /**
  * Mobile Header 컴포넌트
@@ -14,7 +16,22 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
  * Desktop/Tablet: 숨김
  */
 export default function Header() {
-  const { user } = useUser();
+  const { user, isLoaded: isUserLoaded } = useUser();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  // 프로필 클릭 처리
+  const handleProfileClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!isAuthLoaded || !isUserLoaded) {
+      return;
+    }
+
+    if (!isSignedIn || !user) {
+      e.preventDefault();
+      setIsLoginModalOpen(true);
+      return;
+    }
+  };
 
   return (
     <header
@@ -64,6 +81,16 @@ export default function Header() {
         {/* DM 아이콘 (1차 MVP 제외 기능이지만 UI는 준비) */}
         <Link
           href="/messages"
+          onClick={(e) => {
+            if (!isAuthLoaded || !isUserLoaded) {
+              return;
+            }
+
+            if (!isSignedIn || !user) {
+              e.preventDefault();
+              setIsLoginModalOpen(true);
+            }
+          }}
           className="text-[#262626] dark:text-[#fafafa] hover:opacity-70 transition-opacity flex-shrink-0 min-w-[24px] flex items-center justify-center"
           aria-label="메시지"
         >
@@ -78,12 +105,19 @@ export default function Header() {
         {/* 프로필 아이콘 */}
         <Link
           href={user ? `/profile/${user.id}` : "/profile"}
+          onClick={handleProfileClick}
           className="text-[#262626] dark:text-[#fafafa] hover:opacity-70 transition-opacity flex-shrink-0 min-w-[24px] flex items-center justify-center"
           aria-label="프로필"
         >
           <User className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" strokeWidth={2} />
         </Link>
       </div>
+
+      {/* 로그인 요청 모달 */}
+      <LoginRequiredModal
+        open={isLoginModalOpen}
+        onOpenChange={setIsLoginModalOpen}
+      />
     </header>
   );
 }

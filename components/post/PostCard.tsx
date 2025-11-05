@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { useClerkSupabaseClient } from "@/lib/supabase/clerk-client";
 import {
   Heart,
@@ -20,6 +20,7 @@ import { isTextOverflow } from "@/lib/utils/text";
 import CommentForm from "@/components/comment/CommentForm";
 import CommentList from "@/components/comment/CommentList";
 import PostModal from "@/components/post/PostModal";
+import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
 
 interface PostCardProps {
   post: PostWithUser;
@@ -34,7 +35,8 @@ interface PostCardProps {
  * Instagram 스타일의 게시물 카드
  */
 export default function PostCard({ post, comments: initialComments = [], onLikeUpdate, onCommentUpdate, onPostDeleted }: PostCardProps) {
-  const { user: clerkUser } = useUser();
+  const { user: clerkUser, isLoaded: isUserLoaded } = useUser();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const supabase = useClerkSupabaseClient();
   const router = useRouter();
   
@@ -49,6 +51,10 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [heartScale, setHeartScale] = useState(1);
 
+  // 팔로우 상태 관리 (로컬 상태)
+  const [isFollowing, setIsFollowing] = useState(post.is_following || false);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
+
   // 댓글 상태 관리
   const [comments, setComments] = useState<CommentWithUser[]>(initialComments);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
@@ -57,6 +63,9 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
 
   // PostModal 상태 관리
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+
+  // 로그인 요청 모달 상태 관리
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const { user } = post;
 
@@ -163,6 +172,18 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
       return;
     }
 
+    // 인증 상태 확인 (로딩 중이거나 인증되지 않은 경우)
+    if (!isAuthLoaded || !isUserLoaded) {
+      console.log("⏳ 인증 상태 로딩 중...");
+      return;
+    }
+
+    if (!isSignedIn || !clerkUser) {
+      console.log("🔵 로그인 필요 - 모달 표시");
+      setIsLoginModalOpen(true);
+      return;
+    }
+
     setIsLikeLoading(true);
     console.log("🔵 좋아요 토글 시작:", { postId: post.id, currentIsLiked: isLiked });
 
@@ -194,6 +215,12 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
         setIsLiked(!newIsLiked);
         setLikesCount((prev) => (newIsLiked ? Math.max(0, prev - 1) : prev + 1));
         
+        // Unauthorized 에러 시 로그인 팝업 표시
+        if (response.status === 401 || data.error === "Unauthorized") {
+          setIsLoginModalOpen(true);
+          return;
+        }
+        
         // 에러 메시지 표시 (선택적)
         alert(data.error || "좋아요 처리에 실패했습니다.");
         return;
@@ -213,6 +240,96 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
       alert("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
     } finally {
       setIsLikeLoading(false);
+    }
+  };
+
+  // 팔로우/언팔로우 토글 함수
+  const handleFollowToggle = async () => {
+    // 이미 처리 중이면 무시
+    if (isFollowLoading) {
+      console.log("⚠️ 팔로우 처리 중입니다.");
+      return;
+    }
+
+    // 본인 게시물이면 무시
+    if (currentUserId === user.id) {
+      alert("자신을 팔로워 할 수 없습니다.");
+      return;
+    }
+
+    // 인증 상태 확인 (로딩 중이거나 인증되지 않은 경우)
+    if (!isAuthLoaded || !isUserLoaded) {
+      console.log("⏳ 인증 상태 로딩 중...");
+      return;
+    }
+
+    if (!isSignedIn || !clerkUser) {
+      console.error("❌ 인증 상태 확인 실패:", {
+        isAuthLoaded,
+        isUserLoaded,
+        isSignedIn,
+        hasUser: !!clerkUser,
+      });
+      alert("로그인이 필요합니다. 다시 로그인해주세요.");
+      return;
+    }
+
+    setIsFollowLoading(true);
+    console.log("🔵 팔로우 토글 시작:", { userId: user.id, currentIsFollowing: isFollowing });
+
+    try {
+      const newIsFollowing = !isFollowing;
+      
+      // 낙관적 업데이트 (Optimistic Update)
+      setIsFollowing(newIsFollowing);
+
+      // API 호출
+      const response = await fetch("/api/follows", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          following_id: user.id, // Supabase UUID 사용
+          action: newIsFollowing ? "follow" : "unfollow",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // 실패 시 원래 상태로 복구
+        console.error("❌ 팔로우 토글 실패:", {
+          status: response.status,
+          statusText: response.statusText,
+          data,
+        });
+        setIsFollowing(!newIsFollowing);
+        
+        // Unauthorized 에러 시 로그인 팝업 표시
+        if (response.status === 401 || data.error === "Unauthorized") {
+          setIsLoginModalOpen(true);
+          return;
+        }
+        
+        // 자기 자신 팔로우 시도 시 명확한 메시지 표시
+        if (data.error && data.error.includes("자기 자신")) {
+          alert("자신을 팔로워 할 수 없습니다.");
+          return;
+        }
+        
+        alert(data.error || data.message || "팔로우 처리에 실패했습니다.");
+        return;
+      }
+
+      console.log("✅ 팔로우 토글 성공:", data);
+    } catch (error) {
+      console.error("❌ 팔로우 토글 에러:", error);
+      // 에러 발생 시 원래 상태로 복구
+      setIsFollowing(!isFollowing);
+      alert("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
+    } finally {
+      setIsFollowLoading(false);
     }
   };
 
@@ -271,12 +388,37 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
 
           {/* 사용자명 및 시간 */}
           <div className="flex flex-col">
-            <Link
-              href={`/profile/${user.id}`}
-              className="text-sm font-semibold text-[#262626] hover:opacity-70"
-            >
-              {user.username}
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/profile/${user.id}`}
+                className="text-sm font-semibold text-[#262626] hover:opacity-70"
+              >
+                {user.username}
+              </Link>
+              {/* 팔로우 버튼 (본인 게시물이 아닌 경우) */}
+              {currentUserId && currentUserId !== user.id && (
+                <button
+                  onClick={handleFollowToggle}
+                  disabled={isFollowLoading || !isAuthLoaded || !isUserLoaded || !isSignedIn}
+                  className={cn(
+                    "text-xs font-semibold px-2 py-0.5 rounded transition-colors",
+                    isFollowLoading || !isAuthLoaded || !isUserLoaded || !isSignedIn
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : isFollowing
+                      ? "bg-green-500 hover:bg-green-600 text-white"
+                      : "bg-[#0095f6] hover:bg-[#1877f2] text-white"
+                  )}
+                >
+                  {isFollowLoading
+                    ? "..."
+                    : !isAuthLoaded || !isUserLoaded
+                    ? "..."
+                    : isFollowing
+                    ? "팔로잉"
+                    : "팔로우"}
+                </button>
+              )}
+            </div>
             <span className="text-xs text-[#8e8e8e]">
               {formatRelativeTime(post.created_at)}
             </span>
@@ -407,6 +549,18 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
           <button
             className="text-[#262626] hover:opacity-70 transition-opacity"
             onClick={async () => {
+              // 인증 상태 확인
+              if (!isAuthLoaded || !isUserLoaded) {
+                console.log("⏳ 인증 상태 로딩 중...");
+                return;
+              }
+
+              if (!isSignedIn || !clerkUser) {
+                console.log("🔵 로그인 필요 - 로그인 팝업 표시");
+                setIsLoginModalOpen(true);
+                return;
+              }
+
               // 본인 게시물인 경우 메시지 페이지로만 이동
               if (currentUserId === user.id) {
                 router.push("/messages");
@@ -431,6 +585,13 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
 
                 if (!response.ok) {
                   console.error("❌ 대화방 생성/조회 실패:", data.error);
+                  
+                  // Unauthorized 에러 시 로그인 팝업 표시
+                  if (response.status === 401 || data.error === "Unauthorized") {
+                    setIsLoginModalOpen(true);
+                    return;
+                  }
+                  
                   alert(data.error || "메시지를 보낼 수 없습니다.");
                   return;
                 }
@@ -525,7 +686,7 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
       </div>
 
       {/* 댓글 작성 폼 */}
-      <CommentForm postId={post.id} onSubmit={handleCommentSubmit} />
+      <CommentForm postId={post.id} onSubmit={handleCommentSubmit} userName={user.username} />
 
       {/* PostModal */}
       <PostModal
@@ -543,6 +704,13 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
             onCommentUpdate(post.id);
           }
         }}
+      />
+
+      {/* 로그인 요청 모달 */}
+      <LoginRequiredModal
+        open={isLoginModalOpen}
+        onOpenChange={setIsLoginModalOpen}
+        userName={user.username}
       />
     </article>
   );

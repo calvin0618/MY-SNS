@@ -60,7 +60,12 @@ next-env.d.ts
 prompts/
 repomix-output.xml
 
+# supabase-boilerplate (임시 디렉토리)
+supabase-boilerplate/
+
 # clerk configuration (can include secrets)
 /.clerk/
+
+.vercel
 
 .vercel

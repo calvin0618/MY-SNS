@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+import { usePathname, useRouter } from "next/navigation";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { Home, Search, Plus, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
+import { useState } from "react";
 
 /**
  * Sidebar 컴포넌트
@@ -20,7 +22,37 @@ export default function Sidebar({
   onCreatePostClick: () => void;
 }) {
   const pathname = usePathname();
-  const { user } = useUser();
+  const router = useRouter();
+  const { user, isLoaded: isUserLoaded } = useUser();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  // 만들기 버튼 클릭 처리
+  const handleCreatePostClick = () => {
+    if (!isAuthLoaded || !isUserLoaded) {
+      return;
+    }
+
+    if (!isSignedIn || !user) {
+      setIsLoginModalOpen(true);
+      return;
+    }
+
+    onCreatePostClick();
+  };
+
+  // 프로필 클릭 처리
+  const handleProfileClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!isAuthLoaded || !isUserLoaded) {
+      return;
+    }
+
+    if (!isSignedIn || !user) {
+      e.preventDefault();
+      setIsLoginModalOpen(true);
+      return;
+    }
+  };
 
   // 메뉴 항목 정의
   const menuItems: Array<{
@@ -90,7 +122,7 @@ export default function Sidebar({
               <li key={item.href}>
                 {item.isAction ? (
                   <button
-                    onClick={onCreatePostClick}
+                    onClick={handleCreatePostClick}
                     className={cn(
                       // 기본 스타일
                       "flex items-center gap-4 px-3 py-3 lg:px-4 rounded-lg w-full",
@@ -110,6 +142,7 @@ export default function Sidebar({
                 ) : (
                   <Link
                     href={item.href}
+                    onClick={item.label === "프로필" ? handleProfileClick : undefined}
                     className={cn(
                       // 기본 스타일
                       "flex items-center gap-4 px-3 py-3 lg:px-4 rounded-lg",
@@ -139,6 +172,12 @@ export default function Sidebar({
           })}
         </ul>
       </nav>
+
+      {/* 로그인 요청 모달 */}
+      <LoginRequiredModal
+        open={isLoginModalOpen}
+        onOpenChange={setIsLoginModalOpen}
+      />
     </aside>
   );
 }

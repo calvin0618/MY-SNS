@@ -49,8 +49,8 @@ export default function RootLayout({
           >
             <SyncUserProvider>
               <PostRefreshProvider>
-                <Navbar />
-                {children}
+              <Navbar />
+              {children}
               </PostRefreshProvider>
             </SyncUserProvider>
           </ThemeProvider>

@@ -248,12 +248,6 @@ export default function AuthTestPage() {
         </h2>
         <div className="space-y-2">
           <div className="flex gap-2">
-            <span className="font-semibold min-w-[100px]">User ID:</span>
-            <code className="bg-white px-2 py-1 rounded text-sm">
-              {user.id}
-            </code>
-          </div>
-          <div className="flex gap-2">
             <span className="font-semibold min-w-[100px]">Email:</span>
             <span>{user.emailAddresses[0]?.emailAddress}</span>
           </div>

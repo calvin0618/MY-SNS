@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { useClerkSupabaseClient } from "@/lib/supabase/clerk-client";
 import {
   Dialog,
@@ -28,6 +28,7 @@ import { isTextOverflow } from "@/lib/utils/text";
 import CommentList from "@/components/comment/CommentList";
 import CommentForm from "@/components/comment/CommentForm";
 import { Button } from "@/components/ui/button";
+import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
 
 interface PostModalProps {
   postId: string;
@@ -51,7 +52,8 @@ export default function PostModal({
   onCommentUpdate,
 }: PostModalProps) {
   const router = useRouter();
-  const { user: clerkUser } = useUser();
+  const { user: clerkUser, isLoaded: isUserLoaded } = useUser();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const supabase = useClerkSupabaseClient();
 
   const [post, setPost] = useState<PostWithUser | null>(null);
@@ -66,6 +68,9 @@ export default function PostModal({
   const [likesCount, setLikesCount] = useState(0);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [heartScale, setHeartScale] = useState(1);
+
+  // 로그인 요청 모달 상태 관리
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // 현재 사용자의 Supabase user_id 조회
   useEffect(() => {
@@ -129,6 +134,18 @@ export default function PostModal({
   const handleLikeToggle = async () => {
     if (isLikeLoading || !post) return;
 
+    // 인증 상태 확인 (로딩 중이거나 인증되지 않은 경우)
+    if (!isAuthLoaded || !isUserLoaded) {
+      console.log("⏳ 인증 상태 로딩 중...");
+      return;
+    }
+
+    if (!isSignedIn || !clerkUser) {
+      console.log("🔵 로그인 필요 - 모달 표시");
+      setIsLoginModalOpen(true);
+      return;
+    }
+
     setIsLikeLoading(true);
     console.log("🔵 좋아요 토글 시작:", { postId, currentIsLiked: isLiked });
 
@@ -158,6 +175,13 @@ export default function PostModal({
         console.error("❌ 좋아요 토글 실패:", data.error);
         setIsLiked(!newIsLiked);
         setLikesCount((prev) => (newIsLiked ? Math.max(0, prev - 1) : prev + 1));
+        
+        // Unauthorized 에러 시 로그인 팝업 표시
+        if (response.status === 401 || data.error === "Unauthorized") {
+          setIsLoginModalOpen(true);
+          return;
+        }
+        
         alert(data.error || "좋아요 처리에 실패했습니다.");
         return;
       }
@@ -273,7 +297,8 @@ export default function PostModal({
 
   if (isMobile && open) {
     return (
-      <div className="fixed inset-0 z-50 bg-background">
+      <>
+        <div className="fixed inset-0 z-50 bg-background">
         {/* Mobile Header */}
         <header className="flex items-center justify-between px-4 h-[60px] border-b border-border">
           <button
@@ -346,6 +371,18 @@ export default function PostModal({
                     <MessageCircle className="w-6 h-6 text-[#262626]" />
                     <button
                       onClick={async () => {
+                        // 인증 상태 확인
+                        if (!isAuthLoaded || !isUserLoaded) {
+                          console.log("⏳ 인증 상태 로딩 중...");
+                          return;
+                        }
+
+                        if (!isSignedIn || !clerkUser) {
+                          console.log("🔵 로그인 필요 - 로그인 팝업 표시");
+                          setIsLoginModalOpen(true);
+                          return;
+                        }
+
                         // 본인 게시물인 경우 메시지 페이지로만 이동
                         if (currentUserId === post.user.id) {
                           onOpenChange(false);
@@ -371,6 +408,13 @@ export default function PostModal({
 
                           if (!response.ok) {
                             console.error("❌ 대화방 생성/조회 실패:", data.error);
+                            
+                            // Unauthorized 에러 시 로그인 팝업 표시
+                            if (response.status === 401 || data.error === "Unauthorized") {
+                              setIsLoginModalOpen(true);
+                              return;
+                            }
+                            
                             alert(data.error || "메시지를 보낼 수 없습니다.");
                             return;
                           }
@@ -426,17 +470,26 @@ export default function PostModal({
               </div>
 
               {/* 댓글 작성 폼 */}
-              <CommentForm postId={postId} onSubmit={handleCommentSubmit} />
+              <CommentForm postId={postId} onSubmit={handleCommentSubmit} userName={post?.user.username} />
             </div>
           ) : null}
         </div>
       </div>
+
+      {/* 로그인 요청 모달 */}
+      <LoginRequiredModal
+        open={isLoginModalOpen}
+        onOpenChange={setIsLoginModalOpen}
+        userName={post?.user.username}
+      />
+    </>
     );
   }
 
   // Desktop: 모달 형태
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[90vw] max-w-[1000px] p-0 overflow-hidden h-[90vh] flex flex-col">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
@@ -586,12 +639,20 @@ export default function PostModal({
               </div>
 
               {/* 댓글 작성 폼 */}
-              <CommentForm postId={postId} onSubmit={handleCommentSubmit} />
+              <CommentForm postId={postId} onSubmit={handleCommentSubmit} userName={post?.user.username} />
             </div>
           </div>
-        ) : null}
-      </DialogContent>
-    </Dialog>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {/* 로그인 요청 모달 */}
+      <LoginRequiredModal
+        open={isLoginModalOpen}
+        onOpenChange={setIsLoginModalOpen}
+        userName={post?.user.username}
+      />
+    </>
   );
 }
 
