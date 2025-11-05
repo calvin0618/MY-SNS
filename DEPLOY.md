@@ -43,7 +43,7 @@ NEXT_PUBLIC_STORAGE_BUCKET=my-sns
 
 #### 프레임워크 설정
 - **Framework Preset**: Next.js (자동 감지됨)
-- **Root Directory**: `supabase-boilerplate` (또는 프로젝트 루트)
+- **Root Directory**: 프로젝트 루트 (기본값)
 - **Build Command**: `pnpm build` (자동 설정됨)
 - **Output Directory**: `.next` (자동 설정됨)
 - **Install Command**: `pnpm install` (자동 설정됨)

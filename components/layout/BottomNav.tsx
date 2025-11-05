@@ -7,6 +7,7 @@ import { Home, Search, Plus, Heart, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
 import { useState } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 
 /**
  * Bottom Navigation 컴포넌트
@@ -25,6 +26,7 @@ export default function BottomNav({
   const { user, isLoaded: isUserLoaded } = useUser();
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const { t } = useLanguage();
 
   // 만들기 버튼 클릭 처리
   const handleCreatePostClick = () => {
@@ -63,32 +65,32 @@ export default function BottomNav({
   }> = [
     {
       icon: Home,
-      label: "홈",
+      label: t("home"),
       href: "/",
       active: pathname === "/",
     },
     {
       icon: Search,
-      label: "검색",
+      label: t("search"),
       href: "/search",
       active: pathname === "/search",
     },
     {
       icon: Plus,
-      label: "만들기",
+      label: t("create"),
       href: "#", // 모달 열기로 처리
       active: false,
       isAction: true, // 액션 버튼 (링크가 아닌 클릭 이벤트)
     },
     {
       icon: Heart,
-      label: "좋아요",
+      label: t("notifications"),
       href: "/activity", // 1차 MVP 제외 기능이지만 UI는 준비
       active: pathname === "/activity",
     },
     {
       icon: User,
-      label: "프로필",
+      label: t("profile"),
       href: user ? `/profile/${user.id}` : "/profile",
       active: pathname?.startsWith("/profile"),
     },

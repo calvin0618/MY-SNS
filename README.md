@@ -10,11 +10,11 @@
     <img src="https://img.shields.io/badge/-Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="supabase" />
   </div>
 
-  <h1 align="center">SaaS 템플릿</h1>
+  <h1 align="center">MY SNS</h1>
   <h3 align="center">Next.js 15 + Clerk + Supabase</h3>
 
   <p align="center">
-    프로덕션 레디 SaaS 애플리케이션을 위한 풀스택 보일러플레이트
+    Instagram 스타일의 모던 SNS 서비스
   </p>
 </div>
 
@@ -29,7 +29,7 @@
 
 ## 소개
 
-Next.js 15, Clerk, Supabase를 활용한 모던 SaaS 애플리케이션 템플릿입니다.
+MY SNS는 Next.js 15, Clerk, Supabase를 활용한 Instagram 스타일의 모던 SNS 서비스입니다.
 
 **핵심 특징:**
 - ✨ Next.js 15 + React 19 최신 기능 활용
@@ -203,7 +203,7 @@ npm install -g pnpm
 
 ```bash
 git clone <your-repository-url>
-cd saas-template
+cd MY-SNS
 pnpm install
 ```
 
@@ -352,7 +352,7 @@ Clerk에서 추가 로그인 방식을 활성화하려면:
 ## 프로젝트 구조
 
 ```
-saas-template/
+MY-SNS/
 ├── app/                    # Next.js App Router
 │   ├── api/               # API Routes
 │   │   └── sync-user/    # Clerk → Supabase 사용자 동기화

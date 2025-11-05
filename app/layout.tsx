@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import { SyncUserProvider } from "@/components/providers/sync-user-provider";
 import { PostRefreshProvider } from "@/components/providers/post-refresh-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { LanguageProvider } from "@/components/providers/language-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -47,12 +48,14 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <SyncUserProvider>
-              <PostRefreshProvider>
-              <Navbar />
-              {children}
-              </PostRefreshProvider>
-            </SyncUserProvider>
+            <LanguageProvider>
+              <SyncUserProvider>
+                <PostRefreshProvider>
+                  <Navbar />
+                  {children}
+                </PostRefreshProvider>
+              </SyncUserProvider>
+            </LanguageProvider>
           </ThemeProvider>
         </body>
       </html>

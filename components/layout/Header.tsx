@@ -5,8 +5,10 @@ import { useUser, useAuth } from "@clerk/nextjs";
 import { Home, Heart, Send, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { LanguageSelector } from "@/components/ui/language-selector";
 import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
 import { useState } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 
 /**
  * Mobile Header 컴포넌트
@@ -19,6 +21,7 @@ export default function Header() {
   const { user, isLoaded: isUserLoaded } = useUser();
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const { t } = useLanguage();
 
   // 프로필 클릭 처리
   const handleProfileClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -55,7 +58,7 @@ export default function Header() {
         <Link 
           href="/" 
           className="text-[#262626] dark:text-[#fafafa] hover:opacity-70 transition-opacity flex-shrink-0"
-          aria-label="홈으로 가기"
+          aria-label={`${t("home")}으로 가기`}
         >
           <Home className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2} />
         </Link>
@@ -73,7 +76,7 @@ export default function Header() {
         <Link
           href="/notifications"
           className="text-[#262626] dark:text-[#fafafa] hover:opacity-70 transition-opacity flex-shrink-0 min-w-[24px] flex items-center justify-center"
-          aria-label="알림"
+          aria-label={t("notifications")}
         >
           <Heart className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" strokeWidth={2} />
         </Link>
@@ -92,7 +95,7 @@ export default function Header() {
             }
           }}
           className="text-[#262626] dark:text-[#fafafa] hover:opacity-70 transition-opacity flex-shrink-0 min-w-[24px] flex items-center justify-center"
-          aria-label="메시지"
+          aria-label={t("messages")}
         >
           <Send className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" strokeWidth={2} />
         </Link>
@@ -102,12 +105,17 @@ export default function Header() {
           <ThemeToggle className="text-[#262626] dark:text-[#fafafa]" />
         </div>
 
+        {/* 언어 선택 버튼 */}
+        <div className="flex-shrink-0 min-w-[32px] flex items-center justify-center">
+          <LanguageSelector className="text-[#262626] dark:text-[#fafafa]" />
+        </div>
+
         {/* 프로필 아이콘 */}
         <Link
           href={user ? `/profile/${user.id}` : "/profile"}
           onClick={handleProfileClick}
           className="text-[#262626] dark:text-[#fafafa] hover:opacity-70 transition-opacity flex-shrink-0 min-w-[24px] flex items-center justify-center"
-          aria-label="프로필"
+          aria-label={t("profile")}
         >
           <User className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" strokeWidth={2} />
         </Link>

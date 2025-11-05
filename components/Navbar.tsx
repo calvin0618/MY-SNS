@@ -1,14 +1,16 @@
 "use client";
 
-import { SignedOut, SignInButton, SignedIn, UserButton, useUser } from "@clerk/nextjs";
+import { SignedOut, SignInButton, SignUpButton, SignedIn, UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import React from "react";
 import { Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { useLanguage } from "@/components/providers/language-provider";
 
 const Navbar = () => {
   const { user } = useUser();
+  const { t } = useLanguage();
   
   // 사용자 이름 가져오기 (username, fullName, firstName, 이메일 순서로)
   const userName = user?.username || 
@@ -39,10 +41,15 @@ const Navbar = () => {
         </div>
         <SignedOut>
           <SignInButton mode="modal">
-            <Button className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2 whitespace-nowrap">
-              로그인
+            <Button variant="outline" className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2 whitespace-nowrap">
+              {t("login")}
             </Button>
           </SignInButton>
+          <SignUpButton mode="modal">
+            <Button className="flex-shrink-0 text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2 whitespace-nowrap bg-[#0095f6] hover:bg-[#1877f2] text-white">
+              {t("signUp")}
+            </Button>
+          </SignUpButton>
         </SignedOut>
         <SignedIn>
           <div className="flex-shrink-0 min-w-[32px] flex items-center justify-center">

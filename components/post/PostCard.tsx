@@ -264,13 +264,8 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
     }
 
     if (!isSignedIn || !clerkUser) {
-      console.error("❌ 인증 상태 확인 실패:", {
-        isAuthLoaded,
-        isUserLoaded,
-        isSignedIn,
-        hasUser: !!clerkUser,
-      });
-      alert("로그인이 필요합니다. 다시 로그인해주세요.");
+      console.log("🔵 로그인 필요 - 모달 표시");
+      setIsLoginModalOpen(true);
       return;
     }
 
@@ -396,13 +391,13 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
                 {user.username}
               </Link>
               {/* 팔로우 버튼 (본인 게시물이 아닌 경우) */}
-              {currentUserId && currentUserId !== user.id && (
+              {(!currentUserId || currentUserId !== user.id) && (
                 <button
                   onClick={handleFollowToggle}
-                  disabled={isFollowLoading || !isAuthLoaded || !isUserLoaded || !isSignedIn}
+                  disabled={isFollowLoading || !isAuthLoaded || !isUserLoaded}
                   className={cn(
                     "text-xs font-semibold px-2 py-0.5 rounded transition-colors",
-                    isFollowLoading || !isAuthLoaded || !isUserLoaded || !isSignedIn
+                    isFollowLoading || !isAuthLoaded || !isUserLoaded
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : isFollowing
                       ? "bg-green-500 hover:bg-green-600 text-white"

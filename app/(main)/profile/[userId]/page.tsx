@@ -10,6 +10,7 @@ import { UserProfile } from "@/lib/types";
 import { PostWithUser } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import PostModal from "@/components/post/PostModal";
+import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
 import { Grid3x3, Settings } from "lucide-react";
 
 /**
@@ -34,6 +35,7 @@ export default function ProfilePage() {
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
   const [currentSupabaseUserId, setCurrentSupabaseUserId] = useState<string | null>(null);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // 프로필 정보 로드
   const fetchProfile = async () => {
@@ -135,13 +137,8 @@ export default function ProfilePage() {
     }
 
     if (!isSignedIn || !clerkUser) {
-      console.error("❌ 인증 상태 확인 실패:", {
-        isAuthLoaded,
-        isUserLoaded,
-        isSignedIn,
-        hasUser: !!clerkUser,
-      });
-      alert("로그인이 필요합니다. 다시 로그인해주세요.");
+      console.log("🔵 로그인 필요 - 모달 표시");
+      setIsLoginModalOpen(true);
       return;
     }
 
@@ -284,7 +281,7 @@ export default function ProfilePage() {
                 <>
                   <Button
                     onClick={handleFollowToggle}
-                    disabled={isFollowLoading || !isAuthLoaded || !isUserLoaded || !isSignedIn}
+                    disabled={isFollowLoading || !isAuthLoaded || !isUserLoaded}
                     variant={isFollowing ? "outline" : "default"}
                     size="sm"
                     className={isFollowing ? "bg-green-500 hover:bg-green-600 text-white border-green-500" : "bg-[#0095f6] hover:bg-[#1877f2] text-white"}
@@ -409,6 +406,13 @@ export default function ProfilePage() {
           }}
         />
       )}
+
+      {/* 로그인 요청 모달 */}
+      <LoginRequiredModal
+        open={isLoginModalOpen}
+        onOpenChange={setIsLoginModalOpen}
+        userName={profile?.username}
+      />
     </div>
   );
 }

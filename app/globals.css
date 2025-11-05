@@ -139,6 +139,17 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* 클릭 가능한 요소들에 포인터 커서 적용 */
+  button:not(:disabled),
+  a,
+  [role="button"]:not([aria-disabled="true"]),
+  [onclick] {
+    @apply cursor-pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"] {
+    @apply cursor-not-allowed;
+  }
   /* (main) 레이아웃에서 main 스타일을 직접 관리하므로 기본 스타일 제거 */
   /* main {
     @apply max-w-7xl mx-auto pt-16 px-4;

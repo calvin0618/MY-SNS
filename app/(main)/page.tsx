@@ -76,7 +76,7 @@ export default function Home() {
           console.error("   1. Supabase Dashboard 접속: https://supabase.com/dashboard");
           console.error("   2. SQL Editor 열기");
           console.error("   3. 다음 파일의 SQL 실행:");
-          console.error("      supabase-boilerplate/supabase/migrations/20241104_create_sns_schema.sql");
+          console.error("      supabase/migrations/20241104_create_sns_schema.sql");
           console.error("   4. 또는 직접 다음 SQL 실행:");
           console.error("      CREATE TABLE IF NOT EXISTS public.posts (...);");
         }

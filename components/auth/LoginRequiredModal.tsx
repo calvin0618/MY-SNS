@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
+import { useLanguage } from "@/components/providers/language-provider";
 
 interface LoginRequiredModalProps {
   open: boolean;
@@ -31,32 +32,35 @@ export default function LoginRequiredModal({
   onOpenChange,
   userName,
 }: LoginRequiredModalProps) {
+  const { t } = useLanguage();
   const displayName = userName || "선택한 이용자";
-  const message = `가입하거나 로그인하여 "${displayName}"님의 게시물을 확인해보세요.`;
+  const message = userName 
+    ? t("loginMessage", { userName })
+    : t("loginMessageDefault");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center text-lg font-semibold">
-            로그인이 필요합니다
+            {t("loginRequired")}
           </DialogTitle>
           <DialogDescription className="text-center pt-4 space-y-4">
             <p className="text-sm text-muted-foreground">{message}</p>
             <p className="text-xs text-muted-foreground">
-              계속하면 MY SNS 이용 약관 및 개인정보처리방침에 동의하게 됩니다.
+              {t("termsAgreement")}
             </p>
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3 pt-4">
           <SignUpButton mode="modal">
             <Button className="w-full bg-[#0095f6] hover:bg-[#1877f2] text-white">
-              가입하기
+              {t("signUp")}
             </Button>
           </SignUpButton>
           <SignInButton mode="modal">
             <Button variant="outline" className="w-full">
-              로그인
+              {t("signIn")}
             </Button>
           </SignInButton>
         </div>
