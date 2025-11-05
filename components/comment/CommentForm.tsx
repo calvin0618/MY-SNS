@@ -119,7 +119,7 @@ export default function CommentForm({
           disabled={isSubmitting}
           className={cn(
             "flex-1 resize-none border-0 focus:ring-0",
-            "text-sm text-[#262626] placeholder:text-[#8e8e8e]",
+            "text-sm text-foreground placeholder:text-muted-foreground",
             "min-h-[40px] max-h-[100px]",
             "bg-transparent"
           )}
@@ -154,7 +154,7 @@ export default function CommentForm({
               "text-xs",
               content.length > MAX_COMMENT_LENGTH
                 ? "text-[#ed4956]"
-                : "text-[#8e8e8e]"
+                : "text-muted-foreground"
             )}
           >
             {content.length} / {MAX_COMMENT_LENGTH}

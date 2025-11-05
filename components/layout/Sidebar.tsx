@@ -39,8 +39,8 @@ export default function Sidebar({
     {
       icon: Search,
       label: "검색",
-      href: "/explore", // 1차 MVP 제외 기능이지만 UI는 준비
-      active: pathname === "/explore",
+      href: "/search",
+      active: pathname === "/search",
     },
     {
       icon: Plus,

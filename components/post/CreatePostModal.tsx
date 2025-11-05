@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -43,32 +43,80 @@ export default function CreatePostModal({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+  // 디버깅: 상태 변화 추적
+  useEffect(() => {
+    console.log("📊 CreatePostModal 상태:", {
+      hasSelectedFile: !!selectedFile,
+      hasPreviewUrl: !!previewUrl,
+      previewUrlLength: previewUrl?.length || 0,
+      error,
+      isUploading,
+    });
+  }, [selectedFile, previewUrl, error, isUploading]);
+
   // 파일 선택 핸들러
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("🔵 파일 선택 이벤트 발생");
     const file = e.target.files?.[0];
-    if (!file) return;
+    
+    if (!file) {
+      console.warn("⚠️ 파일이 선택되지 않았습니다.");
+      return;
+    }
+
+    console.log("📁 선택된 파일:", {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      sizeMB: (file.size / 1024 / 1024).toFixed(2),
+    });
 
     // 파일 크기 검증
     if (file.size > MAX_FILE_SIZE) {
-      setError(`이미지 파일 크기는 ${MAX_FILE_SIZE / 1024 / 1024}MB 이하여야 합니다.`);
+      const errorMsg = `이미지 파일 크기는 ${MAX_FILE_SIZE / 1024 / 1024}MB 이하여야 합니다.`;
+      console.error("❌ 파일 크기 초과:", errorMsg);
+      setError(errorMsg);
       return;
     }
 
     // 파일 형식 검증
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      setError("지원하지 않는 이미지 형식입니다. (jpg, png, webp만 가능)");
+      const errorMsg = "지원하지 않는 이미지 형식입니다. (jpg, png, webp만 가능)";
+      console.error("❌ 파일 형식 오류:", {
+        fileType: file.type,
+        allowedTypes: ALLOWED_IMAGE_TYPES,
+      });
+      setError(errorMsg);
       return;
     }
 
+    console.log("✅ 파일 검증 통과");
     setSelectedFile(file);
     setError(null);
 
     // 미리보기 URL 생성
+    console.log("🖼️ 미리보기 URL 생성 시작");
     const reader = new FileReader();
+    
     reader.onloadend = () => {
-      setPreviewUrl(reader.result as string);
+      console.log("✅ FileReader onloadend 완료");
+      const result = reader.result as string;
+      if (result) {
+        console.log("✅ 미리보기 URL 설정:", result.substring(0, 50) + "...");
+        setPreviewUrl(result);
+      } else {
+        console.error("❌ FileReader 결과가 없습니다.");
+        setError("이미지 미리보기를 생성할 수 없습니다.");
+      }
     };
+
+    reader.onerror = (error) => {
+      console.error("❌ FileReader 에러:", error);
+      setError("이미지 파일을 읽을 수 없습니다.");
+    };
+
     reader.readAsDataURL(file);
+    console.log("📖 FileReader.readAsDataURL 호출됨");
   };
 
   // 파일 선택 버튼 클릭
@@ -127,12 +175,44 @@ export default function CreatePostModal({
           if (xhr.status >= 200 && xhr.status < 300) {
             resolve(new Response(xhr.responseText, { status: xhr.status }));
           } else {
-            reject(new Error(xhr.responseText));
+            // 에러 응답 파싱
+            let errorMessage = "게시물 작성에 실패했습니다.";
+            let errorDetails = "";
+            
+            try {
+              const errorData = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+              errorMessage = errorData.error || errorMessage;
+              errorDetails = errorData.details || errorData.message || "";
+              
+              console.error("❌ 게시물 작성 API 에러:", {
+                status: xhr.status,
+                statusText: xhr.statusText,
+                error: errorMessage,
+                details: errorDetails,
+                fullResponse: errorData,
+              });
+            } catch (parseError) {
+              console.error("❌ 에러 응답 파싱 실패:", {
+                responseText: xhr.responseText,
+                parseError,
+              });
+              errorMessage = xhr.responseText || errorMessage;
+            }
+            
+            const fullError = errorDetails 
+              ? `${errorMessage}: ${errorDetails}`
+              : errorMessage;
+            
+            reject(new Error(fullError));
           }
         });
 
         xhr.addEventListener("error", () => {
-          reject(new Error("업로드 중 오류가 발생했습니다."));
+          reject(new Error("네트워크 오류가 발생했습니다. 인터넷 연결을 확인하세요."));
+        });
+
+        xhr.addEventListener("abort", () => {
+          reject(new Error("업로드가 취소되었습니다."));
         });
 
         xhr.open("POST", "/api/posts");
@@ -167,9 +247,6 @@ export default function CreatePostModal({
       if (onPostCreated) {
         onPostCreated();
       }
-
-      // 페이지 새로고침 (간단한 방법)
-      router.refresh();
     } catch (error) {
       console.error("❌ 게시물 작성 에러:", error);
       setError(error instanceof Error ? error.message : "게시물 작성에 실패했습니다.");
@@ -198,14 +275,21 @@ export default function CreatePostModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
-        <DialogHeader className="px-6 py-4 border-b border-[#dbdbdb]">
+      <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden bg-white">
+        <DialogHeader className="px-6 py-4 border-b border-[#dbdbdb] bg-white">
           <DialogTitle className="text-center text-base font-semibold text-[#262626]">
             새 게시물 만들기
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col">
+          {/* 에러 메시지 표시 (파일 선택 영역 위에 표시) */}
+          {error && !previewUrl && (
+            <div className="mx-6 mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
           {/* 이미지 업로드 영역 */}
           {!previewUrl ? (
             <div className="flex flex-col items-center justify-center py-12 px-6 min-h-[400px]">
@@ -241,6 +325,8 @@ export default function CreatePostModal({
                   fill
                   className="object-contain"
                   sizes="600px"
+                  unoptimized
+                  priority
                 />
                 
                 {/* 제거 버튼 */}
@@ -255,12 +341,12 @@ export default function CreatePostModal({
                 {/* 업로드 진행률 표시 */}
                 {isUploading && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <div className="bg-white rounded-lg p-6 text-center">
+                    <div className="bg-card rounded-lg p-6 text-center">
                       <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-[#0095f6]" />
-                      <p className="text-sm font-semibold text-[#262626] mb-1">
+                      <p className="text-sm font-semibold text-card-foreground mb-1">
                         업로드 중...
                       </p>
-                      <p className="text-xs text-[#8e8e8e]">
+                      <p className="text-xs text-muted-foreground">
                         {uploadProgress.toFixed(0)}%
                       </p>
                       <div className="mt-2 w-48 h-1 bg-gray-200 rounded-full overflow-hidden">
@@ -275,7 +361,7 @@ export default function CreatePostModal({
               </div>
 
               {/* 캡션 입력 영역 */}
-              <div className="p-4 border-t border-[#dbdbdb]">
+              <div className="p-4 border-t border-border">
                 <div className="flex items-start gap-3">
                   <Textarea
                     placeholder="캡션 작성..."
@@ -306,7 +392,7 @@ export default function CreatePostModal({
 
                 {/* 에러 메시지 */}
                 {error && (
-                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+                  <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded text-sm text-destructive">
                     {error}
                   </div>
                 )}

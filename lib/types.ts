@@ -251,3 +251,72 @@ export interface SortParams {
   order: 'asc' | 'desc'; // 정렬 방향
 }
 
+// ============================================
+// Conversation 타입
+// ============================================
+
+/**
+ * 대화방 정보 타입
+ * Supabase conversations 테이블과 일치
+ */
+export interface Conversation {
+  id: string; // UUID
+  user1_id: string; // UUID (FK → users.id)
+  user2_id: string; // UUID (FK → users.id)
+  last_message_at: string; // ISO 8601 형식 (TIMESTAMP WITH TIME ZONE)
+  created_at: string; // ISO 8601 형식 (TIMESTAMP WITH TIME ZONE)
+  updated_at: string; // ISO 8601 형식 (TIMESTAMP WITH TIME ZONE)
+}
+
+/**
+ * 대화방 생성 시 사용하는 타입
+ */
+export interface CreateConversationInput {
+  user1_id: string;
+  user2_id: string;
+}
+
+/**
+ * 대화방과 사용자 정보를 함께 포함한 타입 (API 응답용)
+ */
+export interface ConversationWithUser extends Conversation {
+  otherUser: User; // 대화 상대방
+  lastMessage: Message | null; // 마지막 메시지
+  unreadCount: number; // 읽지 않은 메시지 수
+}
+
+// ============================================
+// Message 타입
+// ============================================
+
+/**
+ * 메시지 정보 타입
+ * Supabase messages 테이블과 일치
+ */
+export interface Message {
+  id: string; // UUID
+  conversation_id: string; // UUID (FK → conversations.id)
+  sender_id: string; // UUID (FK → users.id)
+  content: string; // 메시지 내용
+  is_read: boolean; // 읽음 여부
+  created_at: string; // ISO 8601 형식 (TIMESTAMP WITH TIME ZONE)
+  updated_at: string; // ISO 8601 형식 (TIMESTAMP WITH TIME ZONE)
+}
+
+/**
+ * 메시지 생성 시 사용하는 타입 (id, created_at, updated_at 제외)
+ */
+export interface CreateMessageInput {
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+}
+
+/**
+ * 메시지와 사용자 정보를 함께 포함한 타입 (API 응답용)
+ */
+export interface MessageWithUser extends Message {
+  sender: User; // 발신자 정보
+  isFromMe: boolean; // 현재 사용자가 보낸 메시지인지
+}
+

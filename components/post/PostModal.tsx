@@ -273,17 +273,17 @@ export default function PostModal({
 
   if (isMobile && open) {
     return (
-      <div className="fixed inset-0 z-50 bg-white">
+      <div className="fixed inset-0 z-50 bg-background">
         {/* Mobile Header */}
-        <header className="flex items-center justify-between px-4 h-[60px] border-b border-[#dbdbdb]">
+        <header className="flex items-center justify-between px-4 h-[60px] border-b border-border">
           <button
             onClick={() => onOpenChange(false)}
-            className="text-[#262626]"
+            className="text-[#262626] dark:text-white"
             aria-label="뒤로가기"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h2 className="text-base font-semibold text-[#262626]">게시물</h2>
+          <h2 className="text-base font-semibold text-[#262626] dark:text-white">게시물</h2>
           <div className="w-6" /> {/* Spacer */}
         </header>
 
@@ -291,11 +291,11 @@ export default function PostModal({
         <div className="overflow-y-auto h-[calc(100vh-60px)]">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
-              <div className="w-8 h-8 border-2 border-[#dbdbdb] border-t-[#262626] rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-border border-t-foreground rounded-full animate-spin" />
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center h-full px-4">
-              <p className="text-sm text-[#8e8e8e] mb-4">{error}</p>
+              <p className="text-sm text-muted-foreground mb-4">{error}</p>
               <Button
                 onClick={() => onOpenChange(false)}
                 variant="outline"
@@ -344,7 +344,54 @@ export default function PostModal({
                       />
                     </button>
                     <MessageCircle className="w-6 h-6 text-[#262626]" />
-                    <Send className="w-6 h-6 text-[#262626]" />
+                    <button
+                      onClick={async () => {
+                        // 본인 게시물인 경우 메시지 페이지로만 이동
+                        if (currentUserId === post.user.id) {
+                          onOpenChange(false);
+                          router.push("/messages");
+                          return;
+                        }
+
+                        try {
+                          console.log("📤 메시지 버튼 클릭 - 사용자:", post.user.id);
+                          
+                          // 대화방 생성/조회
+                          const response = await fetch("/api/conversations", {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                              otherUserId: post.user.id,
+                            }),
+                          });
+
+                          const data = await response.json();
+
+                          if (!response.ok) {
+                            console.error("❌ 대화방 생성/조회 실패:", data.error);
+                            alert(data.error || "메시지를 보낼 수 없습니다.");
+                            return;
+                          }
+
+                          console.log("✅ 대화방 생성/조회 성공:", data.conversation_id);
+                          
+                          // 모달 닫기
+                          onOpenChange(false);
+                          
+                          // 메시지 페이지로 이동 (대화방 선택된 상태)
+                          router.push(`/messages?conversation_id=${data.conversation_id}`);
+                        } catch (error) {
+                          console.error("❌ 메시지 버튼 클릭 에러:", error);
+                          alert("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
+                        }
+                      }}
+                      className="text-[#262626] hover:opacity-70 transition-opacity"
+                      aria-label="메시지 보내기"
+                    >
+                      <Send className="w-6 h-6" />
+                    </button>
                   </div>
                   <Bookmark className="w-6 h-6 text-[#262626]" />
                 </div>
@@ -393,11 +440,11 @@ export default function PostModal({
       <DialogContent className="sm:max-w-[90vw] max-w-[1000px] p-0 overflow-hidden h-[90vh] flex flex-col">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
-            <div className="w-8 h-8 border-2 border-[#dbdbdb] border-t-[#262626] rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-border border-t-foreground rounded-full animate-spin" />
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center h-full px-4">
-            <p className="text-sm text-[#8e8e8e] mb-4">{error}</p>
+            <p className="text-sm text-muted-foreground mb-4">{error}</p>
             <Button
               onClick={() => onOpenChange(false)}
               variant="outline"
@@ -406,7 +453,16 @@ export default function PostModal({
             </Button>
           </div>
         ) : post ? (
-          <div className="flex h-full">
+          <div className="flex h-full relative">
+            {/* 닫기 버튼 (우측 상단) */}
+            <button
+              onClick={() => onOpenChange(false)}
+              className="absolute top-4 right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+              aria-label="닫기"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
             {/* 왼쪽: 이미지 (50%) */}
             <div className="relative w-1/2 bg-black flex items-center justify-center">
               <Image
@@ -419,7 +475,7 @@ export default function PostModal({
             </div>
 
             {/* 오른쪽: 댓글 영역 (50%) */}
-            <div className="w-1/2 flex flex-col border-l border-[#dbdbdb]">
+            <div className="w-1/2 flex flex-col bg-white border-l border-[#dbdbdb]">
               {/* 헤더 */}
               <div className="flex items-center justify-between px-4 h-[60px] border-b border-[#dbdbdb]">
                 <div className="flex items-center gap-3">
@@ -448,7 +504,7 @@ export default function PostModal({
                   </Link>
                 </div>
 
-                {/* 메뉴 버튼 */}
+                {/* 게시물 삭제 버튼 (본인 게시물만 표시) */}
                 {currentUserId === post.user.id && (
                   <button
                     onClick={handleDelete}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useClerkSupabaseClient } from "@/lib/supabase/clerk-client";
 import {
@@ -35,6 +36,7 @@ interface PostCardProps {
 export default function PostCard({ post, comments: initialComments = [], onLikeUpdate, onCommentUpdate, onPostDeleted }: PostCardProps) {
   const { user: clerkUser } = useUser();
   const supabase = useClerkSupabaseClient();
+  const router = useRouter();
   
   const [imageLoading, setImageLoading] = useState(true);
   const [showFullCaption, setShowFullCaption] = useState(false);
@@ -401,11 +403,48 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
             <MessageCircle className="w-6 h-6" strokeWidth={2} />
           </button>
 
-          {/* 공유 버튼 (UI만) */}
+          {/* 메시지 버튼 */}
           <button
-            className="text-[#262626] hover:opacity-70 transition-opacity cursor-not-allowed opacity-50"
-            disabled
-            aria-label="공유"
+            className="text-[#262626] hover:opacity-70 transition-opacity"
+            onClick={async () => {
+              // 본인 게시물인 경우 메시지 페이지로만 이동
+              if (currentUserId === user.id) {
+                router.push("/messages");
+                return;
+              }
+
+              try {
+                console.log("📤 메시지 버튼 클릭 - 사용자:", user.id);
+                
+                // 대화방 생성/조회
+                const response = await fetch("/api/conversations", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    otherUserId: user.id,
+                  }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                  console.error("❌ 대화방 생성/조회 실패:", data.error);
+                  alert(data.error || "메시지를 보낼 수 없습니다.");
+                  return;
+                }
+
+                console.log("✅ 대화방 생성/조회 성공:", data.conversation_id);
+                
+                // 메시지 페이지로 이동 (대화방 선택된 상태)
+                router.push(`/messages?conversation_id=${data.conversation_id}`);
+              } catch (error) {
+                console.error("❌ 메시지 버튼 클릭 에러:", error);
+                alert("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
+              }
+            }}
+            aria-label="메시지 보내기"
           >
             <Send className="w-6 h-6" strokeWidth={2} />
           </button>

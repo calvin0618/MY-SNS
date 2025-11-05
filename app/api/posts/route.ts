@@ -73,7 +73,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Supabase 클라이언트
-    const supabase = getServiceRoleClient();
+    let supabase;
+    try {
+      supabase = getServiceRoleClient();
+      console.log("✅ Supabase 클라이언트 초기화 성공 (create-post)");
+    } catch (supabaseError) {
+      console.error("❌ Supabase 클라이언트 초기화 실패 (create-post):", supabaseError);
+      return NextResponse.json(
+        { 
+          error: "서버 설정 오류입니다.", 
+          details: supabaseError instanceof Error ? supabaseError.message : "Unknown error",
+        },
+        { status: 500 }
+      );
+    }
 
     // Clerk 사용자 정보로 Supabase users 테이블에서 user_id 조회
     const { data: userData, error: userError } = await supabase
@@ -154,9 +167,16 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Create post error:", error);
+    console.error("❌ 게시물 작성 에러:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     return NextResponse.json(
-      { error: "Internal server error" },
+      { 
+        error: "Internal server error",
+        details: errorMessage,
+        stack: process.env.NODE_ENV === "development" ? errorStack : undefined,
+      },
       { status: 500 }
     );
   }
@@ -220,11 +240,21 @@ export async function GET(request: NextRequest) {
         details: postsError.details,
         hint: postsError.hint,
       });
+      
+      // 테이블이 없는 경우 명확한 안내
+      const isTableNotFound = 
+        postsError.code === "PGRST205" || 
+        postsError.message?.includes("Could not find the table") ||
+        postsError.message?.includes("relation") ||
+        postsError.message?.includes("does not exist");
+      
       return NextResponse.json(
         { 
           error: "게시물 목록을 불러오는데 실패했습니다.", 
-          details: postsError.message,
-          code: postsError.code,
+          details: postsError.message || "Unknown error",
+          code: postsError.code || "NO_CODE",
+          hint: postsError.hint || null,
+          migrationGuide: isTableNotFound ? "데이터베이스 테이블이 없습니다. Supabase Dashboard에서 마이그레이션을 실행하세요." : null,
         },
         { status: 500 }
       );
@@ -352,8 +382,15 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error("❌ 게시물 목록 조회 에러:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     return NextResponse.json(
-      { error: "Internal server error" },
+      { 
+        error: "Internal server error",
+        details: errorMessage,
+        stack: process.env.NODE_ENV === "development" ? errorStack : undefined,
+      },
       { status: 500 }
     );
   }

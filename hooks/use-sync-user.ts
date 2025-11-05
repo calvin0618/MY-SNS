@@ -39,7 +39,24 @@ export function useSyncUser() {
         });
 
         if (!response.ok) {
-          console.error("Failed to sync user:", await response.text());
+          const errorText = await response.text();
+          let errorData: any = {};
+          
+          try {
+            errorData = errorText ? JSON.parse(errorText) : {};
+          } catch (e) {
+            console.error("❌ 사용자 동기화 에러 (JSON 파싱 실패):", errorText);
+            return;
+          }
+          
+          console.error("❌ 사용자 동기화 실패:", {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData.error || "알 수 없는 오류",
+            details: errorData.details || errorData.message || "상세 정보 없음",
+            fullResponse: errorData,
+            rawText: errorText.substring(0, 500),
+          });
           return;
         }
 

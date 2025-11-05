@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
-import { Heart, Send, User } from "lucide-react";
+import { Home, Heart, Send, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
@@ -33,13 +33,22 @@ export default function Header() {
         "overflow-hidden"
       )}
     >
-      {/* 로고 */}
-      <Link 
-        href="/" 
-        className="text-base sm:text-xl font-bold text-[#262626] dark:text-[#fafafa] flex-shrink-0 min-w-0 truncate"
-      >
-        My SNS
-      </Link>
+      {/* 좌측: 홈 버튼 + 로고 */}
+      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 min-w-0">
+        <Link 
+          href="/" 
+          className="text-[#262626] dark:text-[#fafafa] hover:opacity-70 transition-opacity flex-shrink-0"
+          aria-label="홈으로 가기"
+        >
+          <Home className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2} />
+        </Link>
+        <Link 
+          href="/" 
+          className="text-base sm:text-xl font-bold text-[#262626] dark:text-[#fafafa] flex-shrink-0 min-w-0 truncate"
+        >
+          My SNS
+        </Link>
+      </div>
 
       {/* 우측 아이콘 그룹 - 항상 보이도록 설정 */}
       <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 min-w-fit z-10 relative">

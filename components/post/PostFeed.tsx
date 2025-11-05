@@ -9,6 +9,7 @@ interface PostFeedProps {
   posts?: PostWithUser[];
   loading?: boolean;
   onPostDeleted?: () => void;
+  onPostCreated?: () => void;
 }
 
 /**
@@ -18,8 +19,11 @@ interface PostFeedProps {
  * 로딩 상태 처리 포함
  * 무한 스크롤과 페이지네이션은 추후 구현 예정
  */
-export default function PostFeed({ posts = [], loading = false, onPostDeleted }: PostFeedProps) {
+export default function PostFeed({ posts = [], loading = false, onPostDeleted, onPostCreated }: PostFeedProps) {
   const router = useRouter();
+  
+  // PostFeed는 onPostCreated를 직접 사용하지 않지만, 
+  // MainLayoutClient에서 접근할 수 있도록 전달받습니다.
 
   // 게시물 삭제 후 피드 새로고침
   const handlePostDeleted = () => {
@@ -48,10 +52,10 @@ export default function PostFeed({ posts = [], loading = false, onPostDeleted }:
     return (
       <div className="w-full flex flex-col items-center justify-center py-16">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-[#262626] mb-2">
+          <h2 className="text-xl font-semibold text-foreground mb-2">
             게시물이 없습니다
           </h2>
-          <p className="text-sm text-[#8e8e8e]">
+          <p className="text-sm text-muted-foreground">
             첫 번째 게시물을 작성해보세요!
           </p>
         </div>

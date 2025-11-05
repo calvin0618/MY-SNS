@@ -26,7 +26,20 @@ export async function POST() {
     }
 
     // Supabase에 사용자 정보 동기화
-    const supabase = getServiceRoleClient();
+    let supabase;
+    try {
+      supabase = getServiceRoleClient();
+      console.log("✅ Supabase 클라이언트 초기화 성공 (sync-user)");
+    } catch (supabaseError) {
+      console.error("❌ Supabase 클라이언트 초기화 실패 (sync-user):", supabaseError);
+      return NextResponse.json(
+        { 
+          error: "서버 설정 오류입니다.", 
+          details: supabaseError instanceof Error ? supabaseError.message : "Unknown error",
+        },
+        { status: 500 }
+      );
+    }
 
     // 사용자명 생성 (username은 UNIQUE이므로 이메일 주소를 기본값으로 사용)
     const username =
@@ -65,9 +78,16 @@ export async function POST() {
       user: data,
     });
   } catch (error) {
-    console.error("Sync user error:", error);
+    console.error("❌ 사용자 동기화 에러:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     return NextResponse.json(
-      { error: "Internal server error" },
+      { 
+        error: "Internal server error",
+        details: errorMessage,
+        stack: process.env.NODE_ENV === "development" ? errorStack : undefined,
+      },
       { status: 500 }
     );
   }

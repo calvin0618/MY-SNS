@@ -96,7 +96,7 @@ export default function CommentList({
 
   if (comments.length === 0) {
     return (
-      <div className="px-4 py-8 text-center text-sm text-[#8e8e8e]">
+      <div className="px-4 py-8 text-center text-sm text-muted-foreground">
         댓글이 없습니다.
       </div>
     );
@@ -149,11 +149,11 @@ export default function CommentList({
                       </span>
                     </div>
 
-                    {/* 삭제 버튼 (본인만 표시) */}
+                    {/* 삭제 버튼 (본인만 표시) - 오른쪽에 고정 */}
                     {isOwner && (
                       <button
                         onClick={() => handleDeleteClick(comment.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
+                        className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded ml-2"
                         aria-label="댓글 삭제"
                       >
                         <MoreVertical className="w-4 h-4 text-[#8e8e8e]" />
@@ -163,7 +163,7 @@ export default function CommentList({
 
                   {/* 시간 표시 */}
                   <div className="mt-1">
-                    <span className="text-xs text-[#8e8e8e]">
+                    <span className="text-xs text-muted-foreground">
                       {formatRelativeTime(comment.created_at)}
                     </span>
                   </div>

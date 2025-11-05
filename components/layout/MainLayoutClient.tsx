@@ -6,6 +6,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
 import CreatePostModal from "@/components/post/CreatePostModal";
+import { usePostRefresh } from "@/components/providers/post-refresh-provider";
 import { cn } from "@/lib/utils";
 
 /**
@@ -19,12 +20,13 @@ export default function MainLayoutClient({
 }) {
   const router = useRouter();
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+  const { refreshPosts } = usePostRefresh();
 
   // 게시물 작성 완료 후 콜백
   const handlePostCreated = () => {
     console.log("✅ 게시물 작성 완료 - 피드 새로고침");
-    // 페이지 새로고침 (피드 업데이트)
-    router.refresh();
+    // Context를 통해 피드 새로고침
+    refreshPosts();
   };
 
   return (
