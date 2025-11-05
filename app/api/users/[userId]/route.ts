@@ -60,7 +60,7 @@ export async function GET(
     // 사용자 정보 조회
     const { data: user, error: userError } = await supabase
       .from("users")
-      .select("id, username, full_name, avatar_url, created_at")
+      .select("id, username, full_name, bio, avatar_url, created_at")
       .eq("id", targetUserId)
       .single();
 
@@ -123,6 +123,7 @@ export async function GET(
       id: string;
       username: string;
       full_name: string | null;
+      bio: string | null;
       avatar_url: string | null;
       created_at: string;
       posts_count: number;
@@ -189,7 +190,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { username, full_name, avatar_url } = body;
+    const { username, full_name, bio, avatar_url } = body;
 
     // Supabase 클라이언트
     let supabase;
@@ -253,6 +254,7 @@ export async function PATCH(
     const updateData: {
       username?: string;
       full_name?: string | null;
+      bio?: string | null;
       avatar_url?: string | null;
     } = {};
 
@@ -270,6 +272,10 @@ export async function PATCH(
       updateData.full_name = full_name?.trim() || null;
     }
 
+    if (bio !== undefined) {
+      updateData.bio = bio?.trim() || null;
+    }
+
     if (avatar_url !== undefined) {
       updateData.avatar_url = avatar_url || null;
     }
@@ -279,7 +285,7 @@ export async function PATCH(
       .from("users")
       .update(updateData)
       .eq("id", targetUserId)
-      .select("id, username, full_name, avatar_url, created_at")
+      .select("id, username, full_name, bio, avatar_url, created_at")
       .single();
 
     if (updateError) {

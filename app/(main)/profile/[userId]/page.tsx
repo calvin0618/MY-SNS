@@ -327,12 +327,16 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* 이름 및 설명 */}
-            {profile.full_name && (
+            {/* 소개글 */}
+            {profile.bio ? (
               <div className="mb-2">
-                <p className="font-semibold text-foreground">{profile.full_name}</p>
+                <p className="whitespace-pre-wrap break-words leading-relaxed text-foreground">{profile.bio}</p>
               </div>
-            )}
+            ) : currentSupabaseUserId === profile.id ? (
+              <div className="mb-2">
+                <p className="text-sm text-muted-foreground">소개글을 추가해보세요.</p>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

@@ -8,6 +8,7 @@ import { ArrowLeft, Camera, Save } from "lucide-react";
 import { UserProfile } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 /**
  * 프로필 편집 페이지
@@ -24,7 +25,7 @@ export default function SettingsPage() {
 
   // 폼 데이터
   const [username, setUsername] = useState("");
-  const [fullName, setFullName] = useState("");
+  const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -52,7 +53,7 @@ export default function SettingsPage() {
         console.log("✅ 프로필 정보 로드 성공:", data.profile);
         setProfile(data.profile);
         setUsername(data.profile.username || "");
-        setFullName(data.profile.full_name || "");
+        setBio(data.profile.bio || "");
         setAvatarUrl(data.profile.avatar_url);
         setAvatarPreview(data.profile.avatar_url);
       } catch (error) {
@@ -134,7 +135,7 @@ export default function SettingsPage() {
         },
         body: JSON.stringify({
           username: username.trim(),
-          full_name: fullName.trim() || null,
+          bio: bio.trim() || null,
           avatar_url: newAvatarUrl,
         }),
       });
@@ -265,18 +266,28 @@ export default function SettingsPage() {
             </p>
           </div>
 
-          {/* 이름 */}
+          {/* 소개글 */}
           <div className="space-y-2">
-            <label htmlFor="fullName" className="text-sm font-medium text-foreground">
-              이름
+            <label htmlFor="bio" className="text-sm font-medium text-foreground">
+              소개글
             </label>
-            <Input
-              id="fullName"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="이름 (선택사항)"
+            <Textarea
+              id="bio"
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="소개글을 입력하세요 (선택사항)"
+              rows={4}
+              maxLength={150}
               className="bg-white dark:bg-[#1a1a1a]"
             />
+            <div className="flex justify-between items-center">
+              <p className="text-xs text-muted-foreground">
+                소개글을 입력하여 자신을 소개하세요.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {bio.length}/150
+              </p>
+            </div>
           </div>
 
           {/* 에러 메시지 */}
