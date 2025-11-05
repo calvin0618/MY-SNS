@@ -281,7 +281,7 @@ export interface CreateConversationInput {
  */
 export interface ConversationWithUser extends Conversation {
   otherUser: User; // 대화 상대방
-  lastMessage: Message | null; // 마지막 메시지
+  lastMessage: (Message & { isFromMe: boolean }) | null; // 마지막 메시지 (isFromMe 속성 포함)
   unreadCount: number; // 읽지 않은 메시지 수
 }
 
