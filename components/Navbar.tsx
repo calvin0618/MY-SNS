@@ -6,6 +6,7 @@ import React from "react";
 import { Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { LanguageSelector } from "@/components/ui/language-selector";
 import { useLanguage } from "@/components/providers/language-provider";
 
 const Navbar = () => {
@@ -22,7 +23,7 @@ const Navbar = () => {
   const displayName = `${userName} SNS`;
 
   return (
-    <header className="flex justify-between items-center p-2 sm:p-4 gap-2 sm:gap-4 h-16 max-w-7xl mx-auto overflow-hidden">
+    <header className="flex justify-between items-center p-2 sm:p-4 gap-2 sm:gap-4 h-16 max-w-7xl mx-auto overflow-hidden md:ml-[72px] lg:ml-[244px] md:pl-4 lg:pl-6">
       <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 min-w-0">
         <Link 
           href="/" 
@@ -31,13 +32,16 @@ const Navbar = () => {
         >
           <Home className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2} />
         </Link>
-        <Link href="/" className="text-lg sm:text-2xl font-bold flex-shrink-0 min-w-0 truncate">
+        <Link href="/" className="text-lg sm:text-2xl font-bold flex-shrink-0 min-w-0 truncate text-[#262626] dark:text-[#fafafa]">
           {displayName}
         </Link>
       </div>
       <div className="flex gap-1 sm:gap-2 md:gap-4 items-center flex-shrink-0 min-w-fit">
         <div className="flex-shrink-0 min-w-[32px] flex items-center justify-center">
-          <ThemeToggle />
+          <ThemeToggle className="text-[#262626] dark:text-[#fafafa]" />
+        </div>
+        <div className="flex-shrink-0 min-w-[32px] flex items-center justify-center">
+          <LanguageSelector className="text-[#262626] dark:text-[#fafafa]" />
         </div>
         <SignedOut>
           <SignInButton mode="modal">

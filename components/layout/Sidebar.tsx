@@ -108,7 +108,10 @@ export default function Sidebar({
     >
       {/* 로고 영역 (Desktop만 표시) */}
       <div className="hidden lg:flex items-center px-6 h-16 border-b border-[#dbdbdb] dark:border-[#333333]">
-        <Link href="/" className="text-2xl font-bold text-[#262626] dark:text-[#fafafa]">
+        <Link 
+          href="/" 
+          className="text-2xl font-bold text-[#262626] dark:text-[#fafafa] whitespace-nowrap"
+        >
           My SNS
         </Link>
       </div>

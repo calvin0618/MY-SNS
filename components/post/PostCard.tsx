@@ -55,6 +55,10 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
   const [isFollowing, setIsFollowing] = useState(post.is_following || false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
 
+  // 책갈피 상태 관리
+  const [isSaved, setIsSaved] = useState(false);
+  const [isSaveLoading, setIsSaveLoading] = useState(false);
+
   // 댓글 상태 관리
   const [comments, setComments] = useState<CommentWithUser[]>(initialComments);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
@@ -69,7 +73,7 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
 
   const { user } = post;
 
-  // 현재 사용자의 Supabase user_id 조회
+  // 현재 사용자의 Supabase user_id 조회 및 책갈피 상태 확인
   useEffect(() => {
     const fetchCurrentUserId = async () => {
       if (!clerkUser?.id) return;
@@ -83,6 +87,22 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
 
         if (!error && data) {
           setCurrentUserId(data.id);
+          
+          // 책갈피 상태 확인 (테이블이 없을 수도 있으므로 에러 무시)
+          try {
+            const { data: savedPost } = await supabase
+              .from("saved_posts")
+              .select("id")
+              .eq("user_id", data.id)
+              .eq("post_id", post.id)
+              .maybeSingle();
+            
+            setIsSaved(!!savedPost);
+          } catch (error) {
+            // 테이블이 없거나 에러가 발생해도 계속 진행
+            console.log("⚠️ 책갈피 상태 확인 실패 (무시됨):", error);
+            setIsSaved(false);
+          }
         }
       } catch (error) {
         console.error("❌ 현재 사용자 ID 조회 실패:", error);
@@ -90,7 +110,7 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
     };
 
     fetchCurrentUserId();
-  }, [clerkUser?.id, supabase]);
+  }, [clerkUser?.id, supabase, post.id]);
 
   // 댓글 목록 로드
   const loadComments = async () => {
@@ -325,6 +345,81 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
       alert("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
     } finally {
       setIsFollowLoading(false);
+    }
+  };
+
+  // 책갈피 토글 함수
+  const handleSaveToggle = async () => {
+    // 이미 처리 중이면 무시
+    if (isSaveLoading) {
+      console.log("⚠️ 책갈피 처리 중입니다.");
+      return;
+    }
+
+    // 인증 상태 확인 (로딩 중이거나 인증되지 않은 경우)
+    if (!isAuthLoaded || !isUserLoaded) {
+      console.log("⏳ 인증 상태 로딩 중...");
+      return;
+    }
+
+    if (!isSignedIn || !clerkUser) {
+      console.log("🔵 로그인 필요 - 모달 표시");
+      setIsLoginModalOpen(true);
+      return;
+    }
+
+    setIsSaveLoading(true);
+    console.log("🔵 책갈피 토글 시작:", { postId: post.id, currentIsSaved: isSaved });
+
+    try {
+      const newIsSaved = !isSaved;
+      
+      // 낙관적 업데이트 (Optimistic Update)
+      setIsSaved(newIsSaved);
+
+      // API 호출
+      const response = await fetch("/api/saved-posts", {
+        method: newIsSaved ? "POST" : "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ post_id: post.id }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // 실패 시 원래 상태로 복구
+        console.error("❌ 책갈피 토글 실패:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: data.error,
+          details: data.details,
+          code: data.code,
+        });
+        setIsSaved(!newIsSaved);
+        
+        // Unauthorized 에러 시 로그인 팝업 표시
+        if (response.status === 401 || data.error === "Unauthorized") {
+          setIsLoginModalOpen(true);
+          return;
+        }
+        
+        // 에러 메시지 표시
+        const errorMessage = data.error || "책갈피 처리에 실패했습니다.";
+        const detailMessage = data.details ? `\n\n상세: ${data.details}` : "";
+        alert(errorMessage + detailMessage);
+        return;
+      }
+
+      console.log("✅ 책갈피 토글 성공:", data);
+    } catch (error) {
+      console.error("❌ 책갈피 토글 에러:", error);
+      // 에러 발생 시 원래 상태로 복구
+      setIsSaved(!isSaved);
+      alert("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
+    } finally {
+      setIsSaveLoading(false);
     }
   };
 
@@ -606,13 +701,20 @@ export default function PostCard({ post, comments: initialComments = [], onLikeU
           </button>
         </div>
 
-        {/* 북마크 버튼 (UI만) */}
+        {/* 북마크 버튼 */}
         <button
-          className="text-[#262626] hover:opacity-70 transition-opacity cursor-not-allowed opacity-50"
-          disabled
-          aria-label="저장"
+          onClick={handleSaveToggle}
+          disabled={isSaveLoading || !isAuthLoaded || !isUserLoaded}
+          className={cn(
+            "transition-opacity cursor-pointer",
+            isSaveLoading && "opacity-50 cursor-wait",
+            isSaved
+              ? "text-[#262626] fill-[#262626] hover:opacity-70"
+              : "text-[#262626] hover:opacity-70"
+          )}
+          aria-label={isSaved ? "저장 취소" : "저장"}
         >
-          <Bookmark className="w-6 h-6" strokeWidth={2} />
+          <Bookmark className={cn("w-6 h-6", isSaved && "fill-current")} strokeWidth={2} />
         </button>
       </div>
 
